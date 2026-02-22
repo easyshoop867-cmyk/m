@@ -3274,8 +3274,8 @@ function togglePw(id, btn) {
 
                 this.isSpinning = false;
                 document.getElementById('spin-btn').disabled = false;
-                document.getElementById('spin-tickets-count').textContent = newTickets;
-                app.loadSpinHistory();
+                // refresh spin page ทั้งหมด — tickets, progress bar, history
+                await app.loadSpinPage();
             },
 
             confirmSpin: async function() {
@@ -3715,14 +3715,14 @@ function togglePw(id, btn) {
             }
         };
 
-        // เมื่อ view-spin แสดง ให้ init — รอ prizes โหลดก่อนเสมอ
+        // เมื่อ view-spin แสดง ให้ init — รอ prizes + loadSpinPage ด้วย await
         const _origRouterShow = router.show.bind(router);
         router.show = async function(id) {
             _origRouterShow(id);
             if(id === 'view-spin') {
                 await spinWheel.loadPrizes();
                 spinWheel.draw();
-                app.loadSpinPage(); // โหลด config, prizes list, history ทุกอย่าง
+                await app.loadSpinPage();
             }
         };
 
@@ -3734,7 +3734,6 @@ function togglePw(id, btn) {
             const { data: u } = await _supabase.from('site_users').select('spin_progress,spin_tickets').eq('id',currentUser.id).single();
             let progress = (u?.spin_progress||0) + amount;
             let tickets = u?.spin_tickets||0;
-            // สะสมสิทธิ์ได้เรื่อยๆ ไม่จำกัด
             const newTickets = Math.floor(progress / threshold);
             if(newTickets > 0) {
                 tickets += newTickets;
@@ -3745,6 +3744,11 @@ function togglePw(id, btn) {
             currentUser.spin_tickets = tickets;
             if(newTickets > 0) {
                 NotificationManager.success(`ໄດ້ຮັບ ${newTickets} ສິດໝຸນວົງລໍ້! (ລວມ: ${tickets} ສິດ)`);
+            }
+            // refresh spin page UI real-time ถ้าอยู่ในหน้า spin
+            const spinView = document.getElementById('view-spin');
+            if(spinView && !spinView.classList.contains('hidden')) {
+                await app.loadSpinPage();
             }
         };
 
