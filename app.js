@@ -915,7 +915,7 @@ function togglePw(id, btn) {
                 const dateStr = order.created_at ? new Date(order.created_at).toLocaleString('lo-LA') : '-';
                 const fromSpin = order.note === 'ໄດ້ຈາກວົງລໍ້';
                 const priceHtml = fromSpin
-                    ? `<b style="color:#f5c518;"><i class="fas fa-sync-alt" style="margin-right:4px;"></i>ໄດ້ຈາກວົງລໍ້</b>`
+                    ? `<b style="color:var(--main-red);">0 ₭</b> <span style="color:#f5c518;font-size:11px;"><i class="fas fa-sync-alt" style="margin-right:2px;"></i>ໄດ້ຈາກວົງລໍ້</span>`
                     : `<b style="color:var(--main-red);">${Number(order.total_amount || order.product_price || 0).toLocaleString()} ₭</b>`;
 
                 document.getElementById('order-detail-content').innerHTML = `
@@ -3222,7 +3222,7 @@ function togglePw(id, btn) {
                     }
 
                     // insert order เหมือนซื้อปกติทุกอย่าง ราคา 0
-                    await _supabase.from('orders').insert([{
+                    const { error: spinOrderErr } = await _supabase.from('orders').insert([{
                         user_id: currentUser.id,
                         product_id: prodId,
                         product_name: prodName,
@@ -3234,13 +3234,15 @@ function togglePw(id, btn) {
                         note: 'ໄດ້ຈາກວົງລໍ້',
                         product_unique_id: genId
                     }]);
+                    if(spinOrderErr) console.error('spin order error:', spinOrderErr);
 
                     resultDesc = genId
                         ? `ໄດ້ຮັບ "${prodName}" — ລະຫັດ: ${genId}`
                         : `ໄດ້ຮັບ "${prodName}"`;
 
-                    // real-time: อัปเดตประวัติทันที
-                    app.renderOrderHistory();
+                    // real-time เหมือน buyProduct — fetch ข้อมูลใหม่ทั้งหมดแล้ว render
+                    await app.fetchData();
+                    await app.renderOrderHistory();
 
                 } else if(prize.type === 'custom') {
                     resultDesc = prize.display_name;
