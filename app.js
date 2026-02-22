@@ -3194,6 +3194,8 @@ function togglePw(id, btn) {
 
             onSpinEnd: async function(prize, newTickets) {
                 let resultDesc = '';
+                // แสดง processing popup ระหว่างรอผลจาก server
+                showProcessing('ກຳລັງຕວດສອບຜົນ...');
 
                 if(prize.type === 'cash') {
                     const newBal = (currentUser.balance||0) + (prize.amount||0);
@@ -3264,6 +3266,8 @@ function togglePw(id, btn) {
                     prize_amount: prize.amount || 0
                 }]);
 
+                // ปิด processing popup แล้วค่อยโชว์ผล
+                hideProcessing();
                 spinWheel.showWinPopup(prize, resultDesc);
                 document.getElementById('spin-result-desc').textContent = resultDesc;
                 document.getElementById('spin-win-desc').textContent = resultDesc;

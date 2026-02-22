@@ -369,8 +369,7 @@
         .announcement-banner { display: none !important; }
 
         header { 
-            background: rgba(10, 10, 10, 0.95);
-            backdrop-filter: blur(6px);
+            background: #0a0a0a;
             padding: 10px 0; 
             position: sticky; 
             top: 0; 
@@ -1006,8 +1005,7 @@
         }
         
         .modal-content { 
-            background: rgba(15,15,15,0.95);
-            backdrop-filter: blur(6px);
+            background: #0f0f0f;
             width: 100%; 
             max-width: 400px; 
             padding: 30px; 
@@ -1626,14 +1624,14 @@
             bottom: 0;
             left: 0;
             width: 100%;
-            background: rgba(10, 10, 10, 0.95);
-            backdrop-filter: blur(6px);
+            background: #0a0a0a;
             border-top: 2px solid var(--main-red);
             display: flex;
             justify-content: space-around;
-            padding: 10px 0;
+            padding: 10px 0 calc(10px + env(safe-area-inset-bottom));
             z-index: 999;
-            animation: slideIn 0.3s ease;
+            transform: translateZ(0);
+            will-change: auto;
         }
         
         .mobile-nav-item {
