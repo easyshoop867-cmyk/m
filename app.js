@@ -2567,7 +2567,12 @@ function togglePw(id, btn) {
                     document.getElementById('login-btn').style.display = 'none';
                     document.getElementById('user-balance').textContent = 
                         Number(currentUser.balance || 0).toLocaleString() + ' ₭';
-                    this.checkAdminAccess(); // ตรวจสอบสิทธิ์ Admin
+                    this.checkAdminAccess();
+                    // ถ้าอยู่หน้า spin และไม่ได้ถูกเรียกจาก loadSpinPage ให้ refresh
+                    const spinView = document.getElementById('view-spin');
+                    if(spinView && !spinView.classList.contains('hidden') && !app._spinPageLoading) {
+                        app.loadSpinPage();
+                    }
                 } else {
                     document.getElementById('user-avatar').style.display = 'none';
                     document.getElementById('login-btn').style.display = 'flex';
@@ -3449,6 +3454,7 @@ function togglePw(id, btn) {
 
             // Spin page init
             loadSpinPage: async function() {
+                this._spinPageLoading = true;
                 // โหลด config (ไม่ต้อง login ก็ได้ เพื่อแสดง how_to และ prizes)
                 const { data: cfg } = await _supabase.from('spin_config').select('*').maybeSingle();
                 if(cfg) {
@@ -3475,21 +3481,30 @@ function togglePw(id, btn) {
                     return;
                 }
 
-                // tickets + progress
-                const { data: freshUser } = await _supabase.from('site_users').select('spin_tickets,spin_progress').eq('id',currentUser.id).single().catch(()=>({data:null}));
+                // fetch fresh user data จาก DB เสมอ (ไม่พึ่ง cache)
+                const threshold = (cfg && cfg.threshold) ? cfg.threshold : 200000;
+                const { data: freshUser } = await _supabase
+                    .from('site_users')
+                    .select('spin_tickets,spin_progress,balance')
+                    .eq('id', currentUser.id)
+                    .single()
+                    .catch(() => ({ data: null }));
                 if(freshUser) {
                     currentUser.spin_tickets = freshUser.spin_tickets || 0;
                     currentUser.spin_progress = freshUser.spin_progress || 0;
+                    currentUser.balance = freshUser.balance || currentUser.balance;
+                    app.updateUserUI();
                 }
                 const tk = currentUser.spin_tickets || 0;
-                document.getElementById('spin-tickets-count').textContent = tk;
-                const threshold = (cfg && cfg.threshold) ? cfg.threshold : 200000;
                 const progress = currentUser.spin_progress || 0;
-                const pct = Math.min((progress / threshold)*100, 100);
+                const pct = Math.min((progress / threshold) * 100, 100);
+                document.getElementById('spin-tickets-count').textContent = tk;
                 document.getElementById('spin-progress-bar').style.width = pct + '%';
-                document.getElementById('spin-progress-text').textContent = `${Number(progress).toLocaleString()} / ${Number(threshold).toLocaleString()} ₭`;
+                document.getElementById('spin-progress-text').textContent =
+                    `${Number(progress).toLocaleString()} / ${Number(threshold).toLocaleString()} ₭`;
                 // history
-                app.loadSpinHistory();
+                await app.loadSpinHistory();
+                this._spinPageLoading = false;
             },
 
             renderSpinPrizesList: function() {
@@ -3715,14 +3730,16 @@ function togglePw(id, btn) {
             }
         };
 
-        // เมื่อ view-spin แสดง ให้ init — รอ prizes + loadSpinPage ด้วย await
+        // override router.show — ถ้าเปิดหน้า spin โหลดข้อมูลทั้งหมด
         const _origRouterShow = router.show.bind(router);
-        router.show = async function(id) {
+        router.show = function(id) {
             _origRouterShow(id);
             if(id === 'view-spin') {
-                await spinWheel.loadPrizes();
-                spinWheel.draw();
-                await app.loadSpinPage();
+                (async () => {
+                    await spinWheel.loadPrizes();
+                    spinWheel.draw();
+                    await app.loadSpinPage();
+                })();
             }
         };
 
