@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="lo" style="background:#0a0a0a;">
+<html lang="lo">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -12,7 +12,14 @@
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 <body>
-    
+
+    <!-- ===== LOADING SCREEN — ต้องเป็น element แรกสุด ป้องกัน flash ===== -->
+    <div id="loading-screen" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#0a0a0a;display:flex;justify-content:center;align-items:center;z-index:99999;opacity:1;visibility:visible;">
+        <div class="loading-character">
+            <img src="https://img2.pic.in.th/elves-01.gif" alt="Loading...">
+        </div>
+    </div>
+
     <!-- Notification Container -->
     <div class="notification-container" id="notification-container"></div>
 
@@ -106,12 +113,6 @@
         </div>
     </div>
 
-    <!-- Loading Screen Animation ใหม่ -->
-    <div id="loading-screen">
-        <div class="loading-character">
-            <img src="https://img2.pic.in.th/elves-01.gif" alt="Loading...">
-        </div>
-    </div>
 
     <div id="loader"></div>
 

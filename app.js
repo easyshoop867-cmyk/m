@@ -496,38 +496,27 @@ function togglePw(id, btn) {
                 this.loading(false);
                 localStorage.removeItem('adminLogin');
 
-                // ปิด loading screen หลังจาก popup โฆษณาเสร็จ (หรือ 800ms ถ้าไม่มี popup)
-                const hideLoading = () => {
-                    const loadingScreen = document.getElementById('loading-screen');
-                    if(loadingScreen && !loadingScreen.classList.contains('hide')) {
-                        loadingScreen.classList.add('hide');
-                        setTimeout(() => { loadingScreen.style.display = 'none'; }, 500);
+                // รอรูป category แรกโหลดเสร็จก่อน แล้วค่อยปิด loading
+                const _hideLoading = () => {
+                    const ls = document.getElementById('loading-screen');
+                    if(ls && !ls.classList.contains('hide')) {
+                        ls.classList.add('hide');
+                        // หลัง fade out เสร็จ ค่อยเปิด popup (ถ้ามี)
+                        setTimeout(() => {
+                            ls.style.display = 'none';
+                            if(this.db.popups && this.db.popups.length > 0) {
+                                popupSystem.init(this.db.popups);
+                            }
+                        }, 550);
                     }
                 };
-
-                if (this.db.popups && this.db.popups.length > 0) {
-                    // รอให้รูป category แรกโหลดก่อน แล้วปิด loading แล้วค่อยเปิด popup
-                    const firstCatImg = document.querySelector('#cat-list-home img:not(.hot-badge)');
-                    const waitImg = () => new Promise(res => {
-                        if(!firstCatImg || firstCatImg.complete) return res();
-                        firstCatImg.addEventListener('load', res, { once: true });
-                        firstCatImg.addEventListener('error', res, { once: true });
-                        setTimeout(res, 3000);
-                    });
-                    await waitImg();
-                    hideLoading();
-                    // รอ fade out เสร็จก่อนเปิด popup
-                    setTimeout(() => popupSystem.init(this.db.popups), 600);
+                const _firstImg = document.querySelector('#cat-list-home img:not(.hot-badge)');
+                if(_firstImg && !_firstImg.complete) {
+                    _firstImg.addEventListener('load', _hideLoading, { once: true });
+                    _firstImg.addEventListener('error', _hideLoading, { once: true });
+                    setTimeout(_hideLoading, 3500); // fallback
                 } else {
-                    // ไม่มี popup รอรูปแรกโหลดแล้วปิด
-                    const firstCatImg = document.querySelector('#cat-list-home img:not(.hot-badge)');
-                    if(firstCatImg && !firstCatImg.complete) {
-                        firstCatImg.addEventListener('load', hideLoading, { once: true });
-                        firstCatImg.addEventListener('error', hideLoading, { once: true });
-                        setTimeout(hideLoading, 3000);
-                    } else {
-                        requestAnimationFrame(() => requestAnimationFrame(hideLoading));
-                    }
+                    requestAnimationFrame(() => requestAnimationFrame(_hideLoading));
                 }
 
                 // PHASE 2: โหลดส่วนที่เหลือ background ไม่บล็อก UI
@@ -907,12 +896,16 @@ function togglePw(id, btn) {
                 window.open(o.file_content, '_blank');
             },
 
-            showOrderDetail: function(orderId) {
-                const order = (this.db.orders || []).find(o => String(o.id) == String(orderId));
-                if(!order) return;
+            showOrderDetail: async function(orderId) {
+                // หาจาก cache ก่อน ถ้าไม่เจอ fetch จาก DB (กรณี order จากวงล้อ)
+                let order = (this.db.orders || []).find(o => String(o.id) == String(orderId));
+                if(!order) {
+                    const { data } = await _supabase.from('orders').select('*').eq('id', orderId).single();
+                    if(!data) return;
+                    order = data;
+                }
                 this._viewingOrder = order;
                 
-                // หาข้อมูล product เพิ่มเติม (tutorial, file)
                 const prod = (this.db.products || []).find(p => p.id == order.product_id);
                 if(prod) {
                     this._viewingOrder.tutorial_url = prod.tutorial_url;
@@ -920,13 +913,18 @@ function togglePw(id, btn) {
                 }
                 
                 const dateStr = order.created_at ? new Date(order.created_at).toLocaleString('lo-LA') : '-';
+                const fromSpin = order.note === 'ໄດ້ຈາກວົງລໍ້';
+                const priceHtml = fromSpin
+                    ? `<b style="color:#f5c518;"><i class="fas fa-sync-alt" style="margin-right:4px;"></i>ໄດ້ຈາກວົງລໍ້</b>`
+                    : `<b style="color:var(--main-red);">${Number(order.total_amount || order.product_price || 0).toLocaleString()} ₭</b>`;
+
                 document.getElementById('order-detail-content').innerHTML = `
                     <div style="text-align:center; margin-bottom:12px;">
                         <img src="${order.product_img || ''}" style="width:100px; height:100px; object-fit:cover; border-radius:10px;">
                     </div>
                     <div style="background:#111; padding:12px; border-radius:10px; font-size:13px;">
                         <div style="margin-bottom:8px;"><span style="color:#aaa;">ສິນຄ້າ:</span> <b>${order.product_name || '-'}</b></div>
-                        <div style="margin-bottom:8px;"><span style="color:#aaa;">ລາຄາ:</span> <b style="color:var(--main-red);">${Number(order.total_amount || order.product_price || 0).toLocaleString()} ₭</b></div>
+                        <div style="margin-bottom:8px;"><span style="color:#aaa;">ລາຄາ:</span> ${priceHtml}</div>
                         <div><span style="color:#aaa;">ເວລາສັ່ງຊື້:</span> ${dateStr}</div>
                     </div>
                     ${order.product_unique_id ? `
@@ -947,27 +945,34 @@ function togglePw(id, btn) {
                 this.openModal('order-detail-modal');
             },
 
-            renderOrderHistory: function() {
+            renderOrderHistory: async function() {
                 if(!currentUser) return;
-                const myOrders = (this.db.orders || [])
-                    .filter(o => o.user_id == currentUser.id)
-                    .sort((a,b) => new Date(b.created_at) - new Date(a.created_at))
-                    .slice(0, 10);
-                
                 const el = document.getElementById('order-history-list');
                 if(!el) return;
-                if(myOrders.length === 0) {
+                el.innerHTML = '<div style="text-align:center;color:#aaa;padding:20px;"><i class="fas fa-spinner fa-spin"></i> ກຳລັງໂຫຼດ...</div>';
+                const { data: myOrders } = await _supabase
+                    .from('orders').select('*')
+                    .eq('user_id', currentUser.id)
+                    .order('created_at', { ascending: false })
+                    .limit(10);
+                if(!myOrders || myOrders.length === 0) {
                     el.innerHTML = '<div style="text-align:center; color:#aaa; padding:30px;">ຍັງບໍ່ມີປະຫວັດການສັ່ງຊື້</div>';
                     return;
                 }
+                // อัปเดต cache ให้ showOrderDetail หาเจอ
+                this.db.orders = myOrders;
                 el.innerHTML = myOrders.map(o => {
                     const dateStr = o.created_at ? new Date(o.created_at).toLocaleString('lo-LA') : '-';
+                    const fromSpin = o.note === 'ໄດ້ຈາກວົງລໍ້';
+                    const priceText = fromSpin
+                        ? '<span style="color:#f5c518;font-size:11px;"><i class="fas fa-sync-alt" style="margin-right:3px;"></i>ໄດ້ຈາກວົງລໍ້</span>'
+                        : `${Number(o.total_amount || o.product_price || 0).toLocaleString()} ₭`;
                     return `
                     <div class="history-item" style="display:flex; align-items:center; gap:12px; padding:12px; background:#111; border-radius:12px; margin-bottom:10px;">
                         <img src="${o.product_img || ''}" style="width:60px; height:60px; object-fit:cover; border-radius:8px; flex-shrink:0;" onerror="this.src='https://via.placeholder.com/60x60?text=No+Img'">
                         <div style="flex:1; min-width:0;">
                             <div style="font-weight:600; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${o.product_name || '-'}</div>
-                            <div style="color:var(--main-red); font-size:13px; margin:3px 0;">${Number(o.total_amount || o.product_price || 0).toLocaleString()} ₭</div>
+                            <div style="color:var(--main-red); font-size:13px; margin:3px 0;">${priceText}</div>
                             <div style="color:#888; font-size:11px;">${dateStr}</div>
                         </div>
                         <button class="btn btn-outline btn-sm" style="white-space:nowrap;" onclick="app.showOrderDetail('${o.id}')">
@@ -3188,51 +3193,67 @@ function togglePw(id, btn) {
             },
 
             onSpinEnd: async function(prize, newTickets) {
-                // ส่งรางวัล (ทำก่อน แล้วค่อยแสดง popup)
                 let resultDesc = '';
+
                 if(prize.type === 'cash') {
                     const newBal = (currentUser.balance||0) + (prize.amount||0);
                     await _supabase.from('site_users').update({ balance: newBal }).eq('id', currentUser.id);
                     currentUser.balance = newBal;
                     resultDesc = `ໄດ້ຮັບເງິນ ${Number(prize.amount).toLocaleString()} ₭ ເຂົ້າກະເປົ໋າແລ້ວ!`;
                     app.updateUserUI();
+
                 } else if(prize.type === 'product' && prize.product_id) {
-                    const prod = app.db.products.find(p => p.id === prize.product_id);
-                    if(prod) {
-                        const { error: orderErr } = await _supabase.from('orders').insert([{
-                            user_id: currentUser.id,
-                            product_id: prod.id,
-                            product_name: prod.name,
-                            product_img: prod.img || '',
-                            product_price: 0,
-                            quantity: 1,
-                            total_amount: 0,
-                            status: 'completed',
-                            note: 'ໄດ້ຈາກວົງລໍ້'
-                        }]);
-                        if(orderErr) {
-                            console.error('spin order error:', orderErr);
-                            resultDesc = `ໄດ້ຮັບ "${prod.name}" (ກະລຸນາຕິດຕໍ່ Admin ຖ້າບໍ່ໂຊ)`;
-                        } else {
-                            resultDesc = `ໄດ້ຮັບ "${prod.name}" ກວດສອບໃນປະຫວັດ!`;
-                        }
-                    } else {
-                        resultDesc = `ໄດ້ຮັບ "${prize.display_name}" ກະລຸນາຕິດຕໍ່ Admin`;
+                    // หา product จาก cache ก่อน ถ้าไม่เจอ fetch จาก DB
+                    let prod = app.db.products.find(p => p.id === prize.product_id);
+                    if(!prod) {
+                        const { data: pd } = await _supabase.from('products').select('*').eq('id', prize.product_id).single();
+                        if(pd) { prod = pd; app.db.products.push(pd); }
                     }
+                    const prodName = prod ? prod.name : prize.display_name;
+                    const prodImg  = prod ? (prod.img || '') : (prize.img_url || '');
+                    const prodId   = prod ? prod.id : prize.product_id;
+
+                    // generate ID เหมือนซื้อปกติ
+                    let genId = null;
+                    if(prod && prod.has_product_id) {
+                        const ts = Date.now().toString(36).toUpperCase();
+                        const rand = Math.random().toString(36).substring(2,6).toUpperCase();
+                        genId = 'EZ-' + ts + '-' + rand;
+                    }
+
+                    // insert order เหมือนซื้อปกติทุกอย่าง ราคา 0
+                    await _supabase.from('orders').insert([{
+                        user_id: currentUser.id,
+                        product_id: prodId,
+                        product_name: prodName,
+                        product_img: prodImg,
+                        product_price: 0,
+                        quantity: 1,
+                        total_amount: 0,
+                        status: 'completed',
+                        note: 'ໄດ້ຈາກວົງລໍ້',
+                        product_unique_id: genId
+                    }]);
+
+                    resultDesc = genId
+                        ? `ໄດ້ຮັບ "${prodName}" — ລະຫັດ: ${genId}`
+                        : `ໄດ້ຮັບ "${prodName}"`;
+
+                    // real-time: อัปเดตประวัติทันที
+                    app.renderOrderHistory();
+
                 } else if(prize.type === 'custom') {
-                    resultDesc = `ກະລຸນາຕິດຕໍ່ Admin ເພື່ອຮັບ "${prize.display_name}"`;
+                    resultDesc = prize.display_name;
                 } else if(prize.type === 'miss') {
                     resultDesc = 'ໂຊກດີຄັ້ງໜ້າ!';
                 }
 
-                // อัปเดต stock_used
                 if(prize.stock > 0) {
                     await _supabase.from('spin_prizes').update({ stock_used: (prize.stock_used||0)+1 }).eq('id', prize.id);
                     prize.stock_used = (prize.stock_used||0)+1;
                 }
 
-                // บันทึกประวัติ spin
-                const { error: histErr } = await _supabase.from('spin_history').insert([{
+                await _supabase.from('spin_history').insert([{
                     user_id: currentUser.id,
                     username: currentUser.username,
                     prize_id: prize.id,
@@ -3240,18 +3261,14 @@ function togglePw(id, btn) {
                     prize_type: prize.type,
                     prize_amount: prize.amount || 0
                 }]);
-                if(histErr) console.error('spin history error:', histErr);
 
-                // แสดง popup หลังจากรู้ผลทุกอย่างแล้ว
                 spinWheel.showWinPopup(prize, resultDesc);
                 document.getElementById('spin-result-desc').textContent = resultDesc;
                 document.getElementById('spin-win-desc').textContent = resultDesc;
 
-                // อัปเดต UI
                 this.isSpinning = false;
                 document.getElementById('spin-btn').disabled = false;
                 document.getElementById('spin-tickets-count').textContent = newTickets;
-                spinWheel._pendingResultDesc = resultDesc;
                 app.loadSpinHistory();
             },
 
@@ -3344,6 +3361,8 @@ function togglePw(id, btn) {
                 const overlay = document.getElementById('spin-win-overlay');
                 overlay.classList.remove('show');
                 setTimeout(() => { overlay.style.display = 'none'; }, 300);
+                // refresh ประวัติสั่งซื้อ real-time
+                app.renderOrderHistory();
             },
 
             launchConfetti: function() {
