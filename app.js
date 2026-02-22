@@ -927,27 +927,30 @@ function togglePw(id, btn) {
                 this.openModal('order-detail-modal');
             },
 
-            renderOrderHistory: function() {
+            renderOrderHistory: async function() {
                 if(!currentUser) return;
-                const myOrders = (this.db.orders || [])
-                    .filter(o => o.user_id == currentUser.id)
-                    .sort((a,b) => new Date(b.created_at) - new Date(a.created_at))
-                    .slice(0, 10);
-                
                 const el = document.getElementById('order-history-list');
                 if(!el) return;
-                if(myOrders.length === 0) {
+                el.innerHTML = '<div style="text-align:center; color:#aaa; padding:20px;"><i class="fas fa-spinner fa-spin"></i> ກຳລັງໂຫຼດ...</div>';
+                const { data: myOrders } = await _supabase
+                    .from('orders')
+                    .select('*')
+                    .eq('user_id', currentUser.id)
+                    .order('created_at', { ascending: false })
+                    .limit(10);
+                if(!myOrders || myOrders.length === 0) {
                     el.innerHTML = '<div style="text-align:center; color:#aaa; padding:30px;">ຍັງບໍ່ມີປະຫວັດການສັ່ງຊື້</div>';
                     return;
                 }
                 el.innerHTML = myOrders.map(o => {
                     const dateStr = o.created_at ? new Date(o.created_at).toLocaleString('lo-LA') : '-';
+                    const isFromSpin = o.note === 'ໄດ້ຈາກວົງລໍ້';
                     return `
                     <div class="history-item" style="display:flex; align-items:center; gap:12px; padding:12px; background:#111; border-radius:12px; margin-bottom:10px;">
                         <img src="${o.product_img || ''}" style="width:60px; height:60px; object-fit:cover; border-radius:8px; flex-shrink:0;" onerror="this.src='https://via.placeholder.com/60x60?text=No+Img'">
                         <div style="flex:1; min-width:0;">
                             <div style="font-weight:600; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${o.product_name || '-'}</div>
-                            <div style="color:var(--main-red); font-size:13px; margin:3px 0;">${Number(o.total_amount || o.product_price || 0).toLocaleString()} ₭</div>
+                            <div style="color:var(--main-red); font-size:13px; margin:3px 0;">${isFromSpin ? '<i class="fas fa-sync-alt" style="margin-right:4px;"></i>ໄດ້ຈາກວົງລໍ້' : Number(o.total_amount || o.product_price || 0).toLocaleString() + ' ₭'}</div>
                             <div style="color:#888; font-size:11px;">${dateStr}</div>
                         </div>
                         <button class="btn btn-outline btn-sm" style="white-space:nowrap;" onclick="app.showOrderDetail('${o.id}')">
@@ -3177,12 +3180,7 @@ function togglePw(id, btn) {
                     resultDesc = `ໄດ້ຮັບເງິນ ${Number(prize.amount).toLocaleString()} ₭ ເຂົ້າກະເປົ໋າແລ້ວ!`;
                     app.updateUserUI();
                 } else if(prize.type === 'product' && prize.product_id) {
-                    // หา product จาก cache ก่อน ถ้าไม่เจอ fetch จาก DB
-                    let prod = app.db.products.find(p => p.id === prize.product_id);
-                    if(!prod) {
-                        const { data: prodData } = await _supabase.from('products').select('*').eq('id', prize.product_id).single();
-                        if(prodData) prod = prodData;
-                    }
+                    const prod = app.db.products.find(p => p.id === prize.product_id);
                     if(prod) {
                         const { error: orderErr } = await _supabase.from('orders').insert([{
                             user_id: currentUser.id,
@@ -3197,24 +3195,12 @@ function togglePw(id, btn) {
                         }]);
                         if(orderErr) {
                             console.error('spin order error:', orderErr);
-                            resultDesc = `ໄດ້ຮັບ "${prod.name}" — ກວດສອບໃນປະຫວັດການສັ່ງຊື້!`;
+                            resultDesc = `ໄດ້ຮັບ "${prod.name}" (ກະລຸນາຕິດຕໍ່ Admin ຖ້າບໍ່ໂຊ)`;
                         } else {
-                            resultDesc = `ໄດ້ຮັບ "${prod.name}" — ກວດສອບໃນປະຫວັດການສັ່ງຊື້!`;
+                            resultDesc = `ໄດ້ຮັບ "${prod.name}" ກວດສອບໃນປະຫວັດ!`;
                         }
                     } else {
-                        // product ไม่มีในระบบ ใช้ชื่อจาก prize แทน
-                        const { error: orderErr } = await _supabase.from('orders').insert([{
-                            user_id: currentUser.id,
-                            product_id: prize.product_id,
-                            product_name: prize.display_name,
-                            product_img: prize.img_url || '',
-                            product_price: 0,
-                            quantity: 1,
-                            total_amount: 0,
-                            status: 'completed',
-                            note: 'ໄດ້ຈາກວົງລໍ້'
-                        }]);
-                        resultDesc = `ໄດ້ຮັບ "${prize.display_name}" — ກວດສອບໃນປະຫວັດການສັ່ງຊື້!`;
+                        resultDesc = `ໄດ້ຮັບ "${prize.display_name}" ກະລຸນາຕິດຕໍ່ Admin`;
                     }
                 } else if(prize.type === 'custom') {
                     resultDesc = `ກະລຸນາຕິດຕໍ່ Admin ເພື່ອຮັບ "${prize.display_name}"`;
@@ -3341,6 +3327,8 @@ function togglePw(id, btn) {
                 const overlay = document.getElementById('spin-win-overlay');
                 overlay.classList.remove('show');
                 setTimeout(() => { overlay.style.display = 'none'; }, 300);
+                // อัปเดตประวัติสั่งซื้อทันทีหลังปิด popup
+                app.renderOrderHistory();
             },
 
             launchConfetti: function() {
