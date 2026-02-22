@@ -497,18 +497,27 @@ function togglePw(id, btn) {
                     popupSystem.init(this.db.popups);
                 }
 
-                // ปิด loading screen ทันที ไม่รอ
                 this.loading(false);
                 localStorage.removeItem('adminLogin');
-                requestAnimationFrame(() => {
-                    requestAnimationFrame(() => {
-                        const loadingScreen = document.getElementById('loading-screen');
-                        if (loadingScreen) {
-                            loadingScreen.classList.add('hide');
-                            setTimeout(() => { loadingScreen.style.display = 'none'; }, 500);
-                        }
-                    });
-                });
+
+                // รอให้รูป category แถวแรกโหลดเสร็จก่อน แล้วค่อยปิด loading screen
+                const hideLoading = () => {
+                    const loadingScreen = document.getElementById('loading-screen');
+                    if (loadingScreen) {
+                        loadingScreen.classList.add('hide');
+                        setTimeout(() => { loadingScreen.style.display = 'none'; }, 500);
+                    }
+                };
+                const firstCatImg = document.querySelector('#cat-list-home img');
+                if (firstCatImg && !firstCatImg.complete) {
+                    firstCatImg.addEventListener('load', hideLoading, { once: true });
+                    firstCatImg.addEventListener('error', hideLoading, { once: true });
+                    // fallback กันค้าง — ถ้า 3 วิยังไม่โหลดก็ปิดเลย
+                    setTimeout(hideLoading, 3000);
+                } else {
+                    // โหลดเสร็จแล้วหรือไม่มีรูป รอ 1 frame แล้วปิด
+                    requestAnimationFrame(() => requestAnimationFrame(hideLoading));
+                }
 
                 // PHASE 2: โหลดส่วนที่เหลือ background ไม่บล็อก UI
                 Promise.all([
@@ -3193,6 +3202,14 @@ function togglePw(id, btn) {
                     const prodImg  = prod ? (prod.img || '') : (prize.img_url || '');
                     const prodId   = prod ? prod.id : prize.product_id;
 
+                    // generate product_unique_id ถ้าสินค้ามี has_product_id
+                    let generatedProductId = null;
+                    if(prod && prod.has_product_id) {
+                        const ts = Date.now().toString(36).toUpperCase();
+                        const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
+                        generatedProductId = 'EZ-' + ts + '-' + rand;
+                    }
+
                     // insert order เหมือนซื้อปกติทุกอย่าง ราคา 0
                     const { error: orderErr } = await _supabase.from('orders').insert([{
                         user_id: currentUser.id,
@@ -3203,11 +3220,16 @@ function togglePw(id, btn) {
                         quantity: 1,
                         total_amount: 0,
                         status: 'completed',
-                        note: 'ໄດ້ຈາກວົງລໍ້'
+                        note: 'ໄດ້ຈາກວົງລໍ້',
+                        product_unique_id: generatedProductId
                     }]);
                     if(orderErr) console.error('spin order error:', orderErr);
 
-                    resultDesc = `ໄດ້ຮັບ "${prodName}" — ກວດສອບໃນປະຫວັດການສັ່ງຊື້!`;
+                    if(generatedProductId) {
+                        resultDesc = `ໄດ້ຮັບ "${prodName}" — ລະຫັດ: ${generatedProductId}`;
+                    } else {
+                        resultDesc = `ໄດ້ຮັບ "${prodName}" — ກວດສອບໃນປະຫວັດການສັ່ງຊື້!`;
+                    }
 
                     // อัปเดตประวัติสั่งซื้อ real-time ทันที
                     app.renderOrderHistory();
