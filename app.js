@@ -2188,7 +2188,7 @@ function togglePw(id, btn) {
                     // ลบรายการเติมเงินทิ้งเลย (ไม่เปลืองพื้นที่ database)
                     await _supabase.from('topup_requests').delete().eq('id', id);
                     
-                    await app._updateSpinProgress(topup.amount);
+                    await app._updateSpinProgress(topup.amount, topup.user_id);
                     NotificationManager.success('ອະນຸມັດສຳເລັດ! ລຶບລາຍການແລ້ວ');
                     await this.fetchData();
                     this.renderAdmin();
@@ -2568,11 +2568,9 @@ function togglePw(id, btn) {
                     document.getElementById('user-balance').textContent = 
                         Number(currentUser.balance || 0).toLocaleString() + ' ₭';
                     this.checkAdminAccess();
-                    // ถ้าอยู่หน้า spin และไม่ได้ถูกเรียกจาก loadSpinPage ให้ refresh
-                    const spinView = document.getElementById('view-spin');
-                    if(spinView && !spinView.classList.contains('hidden') && !app._spinPageLoading) {
-                        app.loadSpinPage();
-                    }
+                    // อัปเดต balance display real-time
+                    const balEl = document.getElementById('user-balance');
+                    if(balEl) balEl.textContent = Number(currentUser.balance||0).toLocaleString() + ' ₭';
                 } else {
                     document.getElementById('user-avatar').style.display = 'none';
                     document.getElementById('login-btn').style.display = 'flex';
@@ -3454,57 +3452,57 @@ function togglePw(id, btn) {
 
             // Spin page init
             loadSpinPage: async function() {
+                if(this._spinPageLoading) return;
                 this._spinPageLoading = true;
-                // โหลด config (ไม่ต้อง login ก็ได้ เพื่อแสดง how_to และ prizes)
-                const { data: cfg } = await _supabase.from('spin_config').select('*').maybeSingle();
-                if(cfg) {
-                    const descEl = document.getElementById('spin-rule-desc');
-                    const howtoEl = document.getElementById('spin-how-to');
-                    if(descEl) descEl.textContent = cfg.description || '';
-                    if(howtoEl) {
-                        const txt = cfg.how_to || '';
-                        // แสดงทั้ง plain text (\n) และ html (<br>)
-                        const html = txt
-                            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') // escape HTML injection
-                            .replace(/\n/g,'<br>'); // แปลง newline → <br>
-                        howtoEl.innerHTML = html;
+                try {
+                    // โหลด config
+                    const { data: cfg } = await _supabase.from('spin_config').select('*').maybeSingle();
+                    const threshold = (cfg && cfg.threshold) ? cfg.threshold : 200000;
+                    if(cfg) {
+                        const descEl = document.getElementById('spin-rule-desc');
+                        const howtoEl = document.getElementById('spin-how-to');
+                        if(descEl) descEl.textContent = cfg.description || '';
+                        if(howtoEl) {
+                            const txt = cfg.how_to || '';
+                            howtoEl.innerHTML = txt.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+                        }
                     }
-                }
-                // prizes list (ไม่ต้อง login)
-                app.renderSpinPrizesList();
+                    // prizes list
+                    if(!spinWheel.prizes || !spinWheel.prizes.length) await spinWheel.loadPrizes();
+                    app.renderSpinPrizesList();
 
-                if(!currentUser) {
-                    // ถ้าไม่ login แสดงข้อความให้ login
-                    document.getElementById('spin-tickets-count').textContent = '-';
-                    document.getElementById('spin-progress-bar').style.width = '0%';
-                    document.getElementById('spin-progress-text').textContent = 'ກະລຸນາເຂົ້າສູ່ລະບົບ';
-                    return;
-                }
+                    if(!currentUser) {
+                        document.getElementById('spin-tickets-count').textContent = '-';
+                        document.getElementById('spin-progress-bar').style.width = '0%';
+                        document.getElementById('spin-progress-text').textContent = 'ກະລຸນາເຂົ້າສູ່ລະບົບ';
+                        return;
+                    }
 
-                // fetch fresh user data จาก DB เสมอ (ไม่พึ่ง cache)
-                const threshold = (cfg && cfg.threshold) ? cfg.threshold : 200000;
-                const { data: freshUser } = await _supabase
-                    .from('site_users')
-                    .select('spin_tickets,spin_progress,balance')
-                    .eq('id', currentUser.id)
-                    .single()
-                    .catch(() => ({ data: null }));
-                if(freshUser) {
-                    currentUser.spin_tickets = freshUser.spin_tickets || 0;
-                    currentUser.spin_progress = freshUser.spin_progress || 0;
-                    currentUser.balance = freshUser.balance || currentUser.balance;
-                    app.updateUserUI();
+                    // fetch fresh จาก DB โดยตรง
+                    const { data: freshUser } = await _supabase
+                        .from('site_users')
+                        .select('spin_tickets,spin_progress,balance')
+                        .eq('id', currentUser.id)
+                        .single();
+                    if(freshUser) {
+                        currentUser.spin_tickets = freshUser.spin_tickets || 0;
+                        currentUser.spin_progress = freshUser.spin_progress || 0;
+                        currentUser.balance = freshUser.balance || currentUser.balance;
+                    }
+                    const tk = currentUser.spin_tickets || 0;
+                    const progress = currentUser.spin_progress || 0;
+                    const pct = Math.min((progress / threshold) * 100, 100);
+                    document.getElementById('spin-tickets-count').textContent = tk;
+                    document.getElementById('spin-progress-bar').style.width = pct + '%';
+                    document.getElementById('spin-progress-text').textContent =
+                        `${Number(progress).toLocaleString()} / ${Number(threshold).toLocaleString()} ₭`;
+                    // balance header
+                    document.getElementById('user-balance').textContent = Number(currentUser.balance||0).toLocaleString() + ' ₭';
+                    // history
+                    await app.loadSpinHistory();
+                } finally {
+                    this._spinPageLoading = false;
                 }
-                const tk = currentUser.spin_tickets || 0;
-                const progress = currentUser.spin_progress || 0;
-                const pct = Math.min((progress / threshold) * 100, 100);
-                document.getElementById('spin-tickets-count').textContent = tk;
-                document.getElementById('spin-progress-bar').style.width = pct + '%';
-                document.getElementById('spin-progress-text').textContent =
-                    `${Number(progress).toLocaleString()} / ${Number(threshold).toLocaleString()} ₭`;
-                // history
-                await app.loadSpinHistory();
-                this._spinPageLoading = false;
             },
 
             renderSpinPrizesList: function() {
@@ -3730,13 +3728,15 @@ function togglePw(id, btn) {
             }
         };
 
-        // override router.show — ถ้าเปิดหน้า spin โหลดข้อมูลทั้งหมด
+        // override router.show — เปิดหน้า spin โหลดทุกอย่าง
         const _origRouterShow = router.show.bind(router);
         router.show = function(id) {
             _origRouterShow(id);
             if(id === 'view-spin') {
                 (async () => {
-                    await spinWheel.loadPrizes();
+                    if(!spinWheel.prizes || !spinWheel.prizes.length) {
+                        await spinWheel.loadPrizes();
+                    }
                     spinWheel.draw();
                     await app.loadSpinPage();
                 })();
@@ -3744,11 +3744,13 @@ function togglePw(id, btn) {
         };
 
         // hook เติมเงินสำเร็จให้อัปเดต spin_progress
-        app._updateSpinProgress = async function(amount) {
-            if(!currentUser) return;
+        // _updateSpinProgress(amount, userId) — userId คือ user ที่เติมเงิน (อาจไม่ใช่ admin)
+        app._updateSpinProgress = async function(amount, userId) {
+            const targetId = userId || (currentUser && currentUser.id);
+            if(!targetId) return;
             const { data: cfg } = await _supabase.from('spin_config').select('threshold').maybeSingle();
             const threshold = (cfg && cfg.threshold) ? cfg.threshold : 200000;
-            const { data: u } = await _supabase.from('site_users').select('spin_progress,spin_tickets').eq('id',currentUser.id).single();
+            const { data: u } = await _supabase.from('site_users').select('spin_progress,spin_tickets').eq('id', targetId).single();
             let progress = (u?.spin_progress||0) + amount;
             let tickets = u?.spin_tickets||0;
             const newTickets = Math.floor(progress / threshold);
@@ -3756,16 +3758,18 @@ function togglePw(id, btn) {
                 tickets += newTickets;
                 progress = progress % threshold;
             }
-            await _supabase.from('site_users').update({ spin_progress: progress, spin_tickets: tickets }).eq('id',currentUser.id);
-            currentUser.spin_progress = progress;
-            currentUser.spin_tickets = tickets;
-            if(newTickets > 0) {
-                NotificationManager.success(`ໄດ້ຮັບ ${newTickets} ສິດໝຸນວົງລໍ້! (ລວມ: ${tickets} ສິດ)`);
-            }
-            // refresh spin page UI real-time ถ้าอยู่ในหน้า spin
-            const spinView = document.getElementById('view-spin');
-            if(spinView && !spinView.classList.contains('hidden')) {
-                await app.loadSpinPage();
+            await _supabase.from('site_users').update({ spin_progress: progress, spin_tickets: tickets }).eq('id', targetId);
+            // ถ้าเป็น currentUser ให้ update cache และ refresh spin page
+            if(currentUser && currentUser.id === targetId) {
+                currentUser.spin_progress = progress;
+                currentUser.spin_tickets = tickets;
+                if(newTickets > 0) {
+                    NotificationManager.success(`ໄດ້ຮັບ ${newTickets} ສິດໝຸນວົງລໍ້! (ລວມ: ${tickets} ສິດ)`);
+                }
+                const spinView = document.getElementById('view-spin');
+                if(spinView && !spinView.classList.contains('hidden')) {
+                    await app.loadSpinPage();
+                }
             }
         };
 
