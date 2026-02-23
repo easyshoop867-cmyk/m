@@ -2215,3 +2215,12 @@
             background: #e4e6eb;
             color: #050505;
         }
+
+        /* Modal content slide up animation */
+        .modal-overlay.active .modal-content {
+            animation: modalSlideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes modalSlideUp {
+            from { transform: translateY(30px) scale(0.96); opacity: 0; }
+            to   { transform: translateY(0) scale(1); opacity: 1; }
+        }

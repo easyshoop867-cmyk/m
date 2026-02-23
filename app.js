@@ -573,7 +573,8 @@ function togglePw(id, btn) {
 
             setActiveNav: function(page) {
                 document.querySelectorAll('.mobile-nav-item').forEach(item => item.classList.remove('active'));
-                document.getElementById(`nav-${page}`).classList.add('active');
+                const navEl = document.getElementById('nav-' + page);
+                if(navEl) navEl.classList.add('active');
             },
 
 
@@ -2264,10 +2265,14 @@ function togglePw(id, btn) {
                     return;
                 }
                 const menu = document.getElementById('user-menu');
-                const isOpening = menu.style.display === 'none';
+                const isOpening = menu.style.display === 'none' || menu.style.display === '';
                 menu.style.display = isOpening ? 'block' : 'none';
+                // ไม่ให้ nav-profile ค้าง active — เคลียร์ทันทีหลังปิด
+                const navProfile = document.getElementById('nav-profile');
                 if(isOpening) {
                     window.scrollTo({ top: 0, behavior: 'smooth' });
+                } else {
+                    if(navProfile) navProfile.classList.remove('active');
                 }
             },
 
@@ -2951,8 +2956,19 @@ function togglePw(id, btn) {
                 this.renderAdmin();
             },
 
-            openModal: (id) => { const el = document.getElementById(id); el.classList.remove('hidden'); el.classList.add('active'); },
-            closeModal: (id) => { const el = document.getElementById(id); el.classList.remove('active'); el.classList.add('hidden'); },
+            openModal: (id) => {
+                const el = document.getElementById(id);
+                el.classList.remove('hidden');
+                el.style.opacity = '0';
+                el.classList.add('active');
+                requestAnimationFrame(() => { el.style.transition = 'opacity 0.25s ease'; el.style.opacity = '1'; });
+            },
+            closeModal: (id) => {
+                const el = document.getElementById(id);
+                el.style.transition = 'opacity 0.22s ease';
+                el.style.opacity = '0';
+                setTimeout(() => { el.classList.remove('active'); el.classList.add('hidden'); el.style.opacity = ''; el.style.transition = ''; }, 230);
+            },
 
             loadProductIds: async function() {
                 const tbody = document.getElementById('t-product-ids');
