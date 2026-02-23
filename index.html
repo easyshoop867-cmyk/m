@@ -207,7 +207,7 @@
         <!-- ===== ປະກາດ (Announcements) ===== -->
         <div id="announcements-container" class="announcements-wrap" style="display:none;"></div>
         
-        <div id="hero" class="hero-banner"></div>
+        <div id="hero" class="hero-slideshow"></div>
         
         <div class="section-title"><h3>ໝວດໝູ່ສິນຄ້າ</h3></div>
         <div id="cat-list-home" class="cat-grid"></div>
@@ -236,7 +236,7 @@
         <div id="footer-fb-widget" style="display:none; margin-top:16px;">
             <div class="fb-page-widget">
                 <div class="fb-page-top">
-                    <img id="fb-widget-logo" src="" class="fb-widget-logo" onerror="this.src='https://img5.pic.in.th/file/secure-sv1/451040865_1553605488920298_8130537799367782724_n4d648c430d775aef.png'">
+                    <img id="fb-widget-logo" src="" class="fb-widget-logo" onerror="this.onerror=null;this.src='https://img5.pic.in.th/file/secure-sv1/451040865_1553605488920298_8130537799367782724_nddb61aa519cba742.png'">
                     <div class="fb-widget-info">
                         <div class="fb-widget-name" id="fb-widget-name">Eazy SHOP</div>
                         <div class="fb-widget-sub">ໜ້າ Page ທາງການ</div>
@@ -907,13 +907,19 @@
 
         <div id="tab-s" class="admin-tab hidden">
 
-            <!-- ══ ຮູບໜ້າຫຼັກ ══ -->
+            <!-- ══ ຮູບໜ້າຫຼັກ (Slideshow) ══ -->
             <div style="background:#111; padding:15px; border-radius:12px; margin-bottom:12px;">
                 <div style="font-size:13px; font-weight:700; color:var(--main-red); margin-bottom:10px;">
-                    <i class="fas fa-image" style="margin-right:6px;"></i>ໜ້າຫຼັກ
+                    <i class="fas fa-images" style="margin-right:6px;"></i>Banner ໜ້າຫຼັກ (Slideshow)
                 </div>
-                <label style="font-size:12px; color:#aaa;">Banner URL (ຮູບຫຼັກ):</label>
-                <input type="text" id="s-banner" class="form-control">
+                <div id="banner-list-admin" style="display:flex; flex-direction:column; gap:8px; margin-bottom:10px;"></div>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <input type="text" id="s-banner-new" class="form-control" placeholder="URL ຮູບ banner ໃໝ່..." style="flex:1;">
+                    <button class="btn btn-red btn-sm" onclick="app.addBanner()" style="white-space:nowrap; padding:8px 14px;">
+                        <i class="fas fa-plus"></i> ເພີ່ມ
+                    </button>
+                </div>
+                <p style="font-size:11px; color:#555; margin-top:6px;">* ຖ້າມີຫຼາຍ banner ຈະສະໄລ້ອັດຕະໂນມັດ</p>
             </div>
 
             <!-- ══ ຕິດຕໍ່ / Social ══ -->

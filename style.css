@@ -558,6 +558,46 @@
             background: linear-gradient(135deg, #ffaa00, #cc8800); 
         }
 
+        /* === Hero Slideshow === */
+        .hero-slideshow {
+            position: relative;
+            width: 100%;
+            height: 160px;
+            border-radius: 12px;
+            margin-top: 15px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            background-color: #111;
+            transition: border-color 0.3s ease;
+        }
+        .hero-slideshow:hover { border-color: var(--main-red); box-shadow: var(--shadow-red); }
+        .hero-slide {
+            position: absolute;
+            inset: 0;
+            background-size: cover;
+            background-position: center;
+            opacity: 0;
+            transition: opacity 0.7s ease;
+        }
+        .hero-slide.active { opacity: 1; }
+        .hero-dots {
+            position: absolute;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 6px;
+            z-index: 2;
+        }
+        .hero-dot {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.4);
+            cursor: pointer;
+            transition: background 0.2s, transform 0.2s;
+        }
+        .hero-dot.active { background: #fff; transform: scale(1.3); }
+        /* legacy fallback */
         .hero-banner { 
             width: 100%; 
             height: 160px; 
@@ -569,7 +609,6 @@
             background-color: #111;
             transition: transform 0.3s ease, opacity 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
         }
-        
         .hero-banner:hover {
             border-color: var(--main-red);
             box-shadow: var(--shadow-red);
@@ -1095,8 +1134,7 @@
             align-items: center; 
             justify-content: center; 
             padding: 20px;
-            /* opacity controlled by JS for preload — no animation here */
-            transition: opacity 0.35s ease;
+            animation: fadeIn 0.3s ease;
         }
         
         .popup-container { 
@@ -2169,6 +2207,8 @@
             object-fit: cover;
             flex-shrink: 0;
             border: 1px solid #eee;
+            background: #f0f0f0;
+            display: block;
         }
         .fb-widget-info { flex: 1; }
         .fb-widget-name {

@@ -322,6 +322,31 @@ function togglePw(id, btn) {
 
         // Snow removed
 
+        // ===== HERO SLIDESHOW =====
+        const heroSlider = {
+            _timer: null,
+            _current: 0,
+            _total: 0,
+            start: function(total) {
+                this._total = total;
+                this._current = 0;
+                clearInterval(this._timer);
+                if(total <= 1) return;
+                this._timer = setInterval(() => {
+                    this._current = (this._current + 1) % this._total;
+                    this.goTo(this._current);
+                }, 4000);
+            },
+            goTo: function(idx) {
+                this._current = idx;
+                const slides = document.querySelectorAll('#hero .hero-slide');
+                const dots = document.querySelectorAll('#hero .hero-dot');
+                slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+                dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+            },
+            stop: function() { clearInterval(this._timer); }
+        };
+
         // ===== POPUP SYSTEM =====
         const popupSystem = {
             popups: [],
@@ -340,62 +365,41 @@ function togglePw(id, btn) {
 
                 const popup = this.popups[this.currentIndex];
                 const container = document.getElementById('popup-system');
-
-                // Build overlay (hidden until image loads)
                 const overlay = document.createElement('div');
                 overlay.className = 'popup-overlay';
-                overlay.style.opacity = '0';
-                overlay.style.transition = 'opacity 0.3s ease';
 
-                let imgSrc = '';
-                let innerHtml = '';
-
+                // custom image/link popup
                 if (popup.custom_img) {
-                    imgSrc = popup.custom_img;
                     const linkOpen = popup.custom_link 
                         ? `window.open('${popup.custom_link}', '_blank')` 
                         : 'popupSystem.close()';
-                    innerHtml = `
+                    overlay.innerHTML = `
                         <div class="popup-container">
                             <button class="popup-close" onclick="popupSystem.close()">✕</button>
-                            <img src="${imgSrc}" class="popup-image" onclick="${linkOpen}" alt="Popup" onerror="this.src='https://via.placeholder.com/600x600?text=No+Image'"
+                            <img src="${popup.custom_img}" class="popup-image" onclick="${linkOpen}" alt="Popup" onerror="this.src='https://via.placeholder.com/600x600?text=No+Image'"
                                 style="cursor:${popup.custom_link ? 'pointer' : 'default'}">
                             ${popup.custom_link ? `<div style="text-align:center; padding:8px 0 4px; font-size:12px; color:#aaa;">ກົດຮູບເພື່ອເບິ່ງຕື່ມ</div>` : ''}
                         </div>
                     `;
                 } else {
+                    // product popup
                     const product = app.db.products.find(p => p.id === popup.product_id);
                     if (!product) {
                         this.currentIndex++;
                         if (this.currentIndex < this.popups.length) { this.show(); }
                         return;
                     }
-                    imgSrc = product.img;
-                    innerHtml = `
+                    overlay.innerHTML = `
                         <div class="popup-container">
                             <button class="popup-close" onclick="popupSystem.close()">✕</button>
-                            <img src="${imgSrc}" class="popup-image" onclick="popupSystem.navigate(${product.id})" alt="${product.name}" onerror="this.src='https://via.placeholder.com/600x600?text=No+Image'">
+                            <img src="${product.img}" class="popup-image" onclick="popupSystem.navigate(${product.id})" alt="${product.name}" onerror="this.src='https://via.placeholder.com/600x600?text=No+Image'">
                         </div>
                     `;
                 }
-
-                overlay.innerHTML = innerHtml;
+                
                 container.innerHTML = '';
                 container.appendChild(overlay);
                 document.body.style.overflow = 'hidden';
-
-                // Preload image, then fade in popup
-                const _showOverlay = () => { requestAnimationFrame(() => { overlay.style.opacity = '1'; }); };
-                if (imgSrc) {
-                    const preload = new Image();
-                    preload.onload = _showOverlay;
-                    preload.onerror = _showOverlay; // show anyway on error
-                    preload.src = imgSrc;
-                    // fallback after 4s even if image stalls
-                    setTimeout(_showOverlay, 4000);
-                } else {
-                    _showOverlay();
-                }
             },
 
             close: function() {
@@ -523,11 +527,24 @@ function togglePw(id, btn) {
                     const ls = document.getElementById('loading-screen');
                     if(ls && !ls.classList.contains('hide')) {
                         ls.classList.add('hide');
-                        // หลัง fade out เสร็จ ค่อยเปิด popup (ถ้ามี)
+                        // หลัง fade out เสร็จ ค่อยเปิด popup (ถ้ามี) — popup จะ preload รูปก่อน show เอง
                         setTimeout(() => {
                             ls.style.display = 'none';
                             if(this.db.popups && this.db.popups.length > 0) {
-                                popupSystem.init(this.db.popups);
+                                // preload popup images before init
+                                const firstPopup = this.db.popups[0];
+                                const firstImgSrc = firstPopup.custom_img || (() => {
+                                    const p = this.db.products.find(x => x.id === firstPopup.product_id);
+                                    return p ? p.img : null;
+                                })();
+                                if(firstImgSrc) {
+                                    const pre = new Image();
+                                    pre.onload = pre.onerror = () => popupSystem.init(this.db.popups);
+                                    pre.src = firstImgSrc;
+                                    setTimeout(() => popupSystem.init(this.db.popups), 5000); // safety
+                                } else {
+                                    popupSystem.init(this.db.popups);
+                                }
                             }
                         }, 550);
                     }
@@ -620,7 +637,7 @@ function togglePw(id, btn) {
                 const fbWidget = document.getElementById('footer-fb-widget');
                 const fbPageUrl = s.fb_page_url || (c.fb || '');
                 const fbPageName = s.fb_page_name || 'Eazy SHOP';
-                const fbLogoUrl = s.footer_logo || 'https://img5.pic.in.th/file/secure-sv1/451040865_1553605488920298_8130537799367782724_nddb61aa519cba742.png';
+                const fbLogoUrl = s.footer_logo || 'https://img5.pic.in.th/file/secure-sv1/451040865_1553605488920298_8130537799367782724_n4d648c430d775aef.png';
                 if(fbWidget && fbPageUrl) {
                     fbWidget.style.display = 'block';
                     const nameEl = document.getElementById('fb-widget-name');
@@ -637,7 +654,23 @@ function togglePw(id, btn) {
             },
 
             renderHome: function() {
-                if(this.db.settings.banner) document.getElementById('hero').style.backgroundImage = `url('${this.db.settings.banner}')`;
+                // ===== Banner Slideshow =====
+                const hero = document.getElementById('hero');
+                const banners = this.db.settings.banners || (this.db.settings.banner ? [this.db.settings.banner] : []);
+                if(hero) {
+                    if(banners.length === 0) {
+                        hero.innerHTML = '';
+                        hero.style.backgroundImage = '';
+                    } else if(banners.length === 1) {
+                        hero.innerHTML = `<div class="hero-slide active" style="background-image:url('${banners[0]}');"></div>`;
+                    } else {
+                        // Multiple — build slides + dots
+                        let slidesHtml = banners.map((b,i) => `<div class="hero-slide${i===0?' active':''}" style="background-image:url('${b}');"></div>`).join('');
+                        let dotsHtml = banners.map((_,i) => `<div class="hero-dot${i===0?' active':''}" onclick="heroSlider.goTo(${i})"></div>`).join('');
+                        hero.innerHTML = slidesHtml + `<div class="hero-dots">${dotsHtml}</div>`;
+                        heroSlider.start(banners.length);
+                    }
+                }
                 
                 const hotCatIds = this.db.hot_deals.categories || [];
                 const sortedCats = [...this.db.categories].sort((a, b) =>
@@ -1396,10 +1429,12 @@ function togglePw(id, btn) {
                 `}).join('');
 
                 const s = this.db.settings;
-                document.getElementById('s-banner').value = s.banner || "";
-                document.getElementById('s-wa').value = s.contact.wa || "";
-                document.getElementById('s-tt').value = s.contact.tt || "";
-                document.getElementById('s-fb').value = s.contact.fb || "";
+                // banner list
+                if(!s.banners && s.banner) s.banners = [s.banner];
+                this.renderBannerAdmin();
+                document.getElementById('s-wa').value = s.contact?.wa || "";
+                document.getElementById('s-tt').value = s.contact?.tt || "";
+                document.getElementById('s-fb').value = s.contact?.fb || "";
                 if(document.getElementById('s-footer-logo')) document.getElementById('s-footer-logo').value = s.footer_logo || "";
                 if(document.getElementById('s-footer-desc')) document.getElementById('s-footer-desc').value = s.footer_desc || "";
                 if(document.getElementById('s-fb-page')) document.getElementById('s-fb-page').value = s.fb_page_url || "";
@@ -1764,7 +1799,8 @@ function togglePw(id, btn) {
 
             saveSettings: async function() {
                 const data = {
-                    banner: document.getElementById('s-banner').value,
+                    banners: this.db.settings.banners || [],
+                    banner: (this.db.settings.banners || [])[0] || '', // backward compat
                     contact: {
                         wa: document.getElementById('s-wa').value,
                         tt: document.getElementById('s-tt').value,
@@ -1781,6 +1817,36 @@ function togglePw(id, btn) {
                 if(error) { NotificationManager.error(error.message); return; }
                 NotificationManager.success('ບັນທຶກການຕັ້ງຄ່າສຳເລັດ!');
                 await this.fetchData();
+            },
+
+            // ===== BANNER MANAGEMENT =====
+            addBanner: async function() {
+                const url = (document.getElementById('s-banner-new').value || '').trim();
+                if(!url) return;
+                if(!this.db.settings.banners) this.db.settings.banners = this.db.settings.banner ? [this.db.settings.banner] : [];
+                this.db.settings.banners.push(url);
+                document.getElementById('s-banner-new').value = '';
+                this.renderBannerAdmin();
+                await this.saveSettings();
+            },
+            removeBanner: async function(idx) {
+                if(!this.db.settings.banners) return;
+                this.db.settings.banners.splice(idx, 1);
+                this.renderBannerAdmin();
+                await this.saveSettings();
+            },
+            renderBannerAdmin: function() {
+                const el = document.getElementById('banner-list-admin');
+                if(!el) return;
+                const banners = this.db.settings.banners || (this.db.settings.banner ? [this.db.settings.banner] : []);
+                if(!banners.length) { el.innerHTML = '<p style="color:#555;font-size:12px;text-align:center;padding:8px;">ຍັງບໍ່ມີ banner</p>'; return; }
+                el.innerHTML = banners.map((b,i) => `
+                    <div style="display:flex;align-items:center;gap:8px;background:#1a1a1a;border-radius:8px;padding:8px 10px;border:1px solid #2a2a2a;">
+                        <img src="${b}" style="width:56px;height:36px;object-fit:cover;border-radius:5px;flex-shrink:0;" onerror="this.src='https://via.placeholder.com/56x36?text=?'">
+                        <div style="flex:1;font-size:11px;color:#888;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${b}</div>
+                        <i class="fas fa-trash" style="color:#ff4444;cursor:pointer;font-size:14px;flex-shrink:0;" onclick="app.removeBanner(${i})"></i>
+                    </div>
+                `).join('');
             },
 
             saveUser: async function() {
@@ -3082,14 +3148,6 @@ function togglePw(id, btn) {
 
             // วาดวงล้อ — HiDPI + ข้อความชัด อ่านออกจากกึ่งกลาง
             draw: function() {
-                // รอ font โหลดก่อน draw เพื่อป้องกันข้อความหาย
-                if (document.fonts && document.fonts.status !== 'loaded') {
-                    document.fonts.ready.then(() => this._doDraw());
-                    return;
-                }
-                this._doDraw();
-            },
-            _doDraw: function() {
                 const canvas = document.getElementById('spin-canvas');
                 if(!canvas) return;
 
