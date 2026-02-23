@@ -13,26 +13,27 @@ function togglePw(id, btn) {
             ? document.querySelectorAll(selector)
             : selector;
         if(!items || !items.length) return;
+        // แต่ละ item มี delay ของตัวเอง — ทีละอัน 120ms
+        let globalIdx = 0;
         const obs = new IntersectionObserver((entries, o) => {
-            let idx = 0;
             entries.forEach(entry => {
                 if(entry.isIntersecting) {
-                    const delay = idx * 60;
-                    idx++;
+                    const delay = globalIdx * 120;
+                    globalIdx++;
                     setTimeout(() => entry.target.classList.add('visible'), delay);
                     o.unobserve(entry.target);
                 }
             });
-        }, { threshold: 0.05, rootMargin: '0px 0px -10px 0px' });
+        }, { threshold: 0.08, rootMargin: '0px 0px -30px 0px' });
         items.forEach(el => { el.classList.remove('visible'); obs.observe(el); });
-        // Fallback: บังคับ visible ถ้า 1.5s แล้วยังค้าง
+        // Fallback 2.5s
         setTimeout(() => {
             items.forEach((el, i) => {
                 if (!el.classList.contains('visible')) {
-                    setTimeout(() => el.classList.add('visible'), i * 60);
+                    setTimeout(() => el.classList.add('visible'), i * 120);
                 }
             });
-        }, 800);
+        }, 2500);
     }
 
 // ===== Main App =====
@@ -575,6 +576,50 @@ function togglePw(id, btn) {
                 document.getElementById(`nav-${page}`).classList.add('active');
             },
 
+
+            renderFooter: function() {
+                const s = this.db.settings || {};
+                // logo
+                const logoImg = document.getElementById('footer-logo-img');
+                if(logoImg && s.footer_logo) {
+                    logoImg.src = s.footer_logo;
+                    logoImg.style.display = 'block';
+                }
+                // desc
+                const descEl = document.getElementById('footer-desc');
+                if(descEl && s.footer_desc) descEl.textContent = s.footer_desc;
+                // socials
+                const c = s.contact || {};
+                const socialsEl = document.getElementById('footer-socials');
+                if(!socialsEl) return;
+                let links = [];
+                if(c.fb) links.push(`
+                    <a class="footer-social-link" href="${c.fb}" target="_blank">
+                        <div class="footer-social-icon fb"><i class="fab fa-facebook-f"></i></div>
+                        <div>
+                            <div class="footer-social-text">Facebook</div>
+                            <div class="footer-social-sub">ຕິດຕາມໜ້າ Page</div>
+                        </div>
+                    </a>`);
+                if(c.wa) links.push(`
+                    <a class="footer-social-link" href="https://wa.me/${c.wa.replace(/\D/g,'')}" target="_blank">
+                        <div class="footer-social-icon wa"><i class="fab fa-whatsapp"></i></div>
+                        <div>
+                            <div class="footer-social-text">WhatsApp</div>
+                            <div class="footer-social-sub">ຕິດຕໍ່ຫາເຮົາ</div>
+                        </div>
+                    </a>`);
+                if(c.tt) links.push(`
+                    <a class="footer-social-link" href="${c.tt}" target="_blank">
+                        <div class="footer-social-icon tt"><i class="fab fa-tiktok"></i></div>
+                        <div>
+                            <div class="footer-social-text">TikTok</div>
+                            <div class="footer-social-sub">ຕິດຕາມວິດີໂອ</div>
+                        </div>
+                    </a>`);
+                socialsEl.innerHTML = links.join('') || '<p style="color:#555;font-size:13px;">ຍັງບໍ່ມີ Social ທີ່ຕັ້ງໄວ້</p>';
+            },
+
             renderHome: function() {
                 if(this.db.settings.banner) document.getElementById('hero').style.backgroundImage = `url('${this.db.settings.banner}')`;
                 
@@ -616,6 +661,8 @@ function togglePw(id, btn) {
                     return aHot - bHot;
                 });
                 this.renderProds(homeProds.slice(0, 10), 'home-prods');
+                // footer
+                this.renderFooter();
                 // ===== Trigger slide-in animations =====
                 slideAnimate('#cat-list-home .slide-up');
                 slideAnimate('#home-prods .slide-up');
@@ -1337,6 +1384,8 @@ function togglePw(id, btn) {
                 document.getElementById('s-wa').value = s.contact.wa || "";
                 document.getElementById('s-tt').value = s.contact.tt || "";
                 document.getElementById('s-fb').value = s.contact.fb || "";
+                if(document.getElementById('s-footer-logo')) document.getElementById('s-footer-logo').value = s.footer_logo || "";
+                if(document.getElementById('s-footer-desc')) document.getElementById('s-footer-desc').value = s.footer_desc || "";
                 
                 // Load Hot Deals
                 this.loadHotItems();
@@ -1702,7 +1751,9 @@ function togglePw(id, btn) {
                         wa: document.getElementById('s-wa').value,
                         tt: document.getElementById('s-tt').value,
                         fb: document.getElementById('s-fb').value
-                    }
+                    },
+                    footer_logo: (document.getElementById('s-footer-logo') || {}).value || (this.db.settings.footer_logo || ''),
+                    footer_desc: (document.getElementById('s-footer-desc') || {}).value || (this.db.settings.footer_desc || '')
                 };
                 this.loading(true);
                 const { error } = await _supabase.from('settings').update({ data }).eq('id', 1);

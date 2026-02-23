@@ -1620,28 +1620,33 @@
         /* Mobile Navigation */
         .mobile-nav {
             position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            background: #0a0a0a;
-            border-top: 2px solid var(--main-red);
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%) translateZ(0);
+            -webkit-transform: translateX(-50%) translateZ(0);
+            width: calc(100% - 32px);
+            max-width: 480px;
+            background: rgba(18,18,18,0.97);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 28px;
             display: flex;
             justify-content: space-around;
-            padding: 10px 0 calc(10px + env(safe-area-inset-bottom));
+            align-items: center;
+            padding: 8px 6px calc(8px + env(safe-area-inset-bottom));
             z-index: 999;
-            transform: translateZ(0);
-            -webkit-transform: translateZ(0);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,0,0,0.08);
         }
         
         .mobile-nav-item {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 4px;
+            gap: 3px;
             cursor: pointer;
-            padding: 8px;
-            border-radius: 12px;
-            transition: transform 0.2s ease, opacity 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+            padding: 7px 12px;
+            border-radius: 20px;
+            transition: background 0.2s ease, transform 0.15s ease;
+            flex: 1;
         }
         
         .mobile-nav-item:hover {
@@ -1658,6 +1663,9 @@
             color: var(--text-dim);
         }
         
+        .mobile-nav-item.active {
+            background: rgba(255,0,0,0.12);
+        }
         .mobile-nav-item.active i,
         .mobile-nav-item.active span {
             color: var(--main-red);
@@ -1739,8 +1747,8 @@
     
 /* === SCROLL SLIDE EFFECT (SAFE ADDITION) === */
         /* ===== SPIN WHEEL NAV BUTTON ===== */
-        .nav-spin-center { position: relative; margin-top: -14px; }
-        .spin-nav-btn { will-change: opacity; width:50px; height:50px; border-radius:50%; background:linear-gradient(135deg,#ff0000,#8b0000); display:flex; align-items:center; justify-content:center; font-size:20px; color:#fff; box-shadow:0 0 15px rgba(255,0,0,0.5); margin:0 auto 2px; border:3px solid #1a1a1a; animation:spinGlow 2s ease-in-out infinite; }
+        
+        
         @keyframes spinGlow { 0%,100%{opacity:0.85;} 50%{opacity:1;} }
         .nav-spin-center span { font-size:10px; color:var(--text-dim); }
         .mobile-nav-item span { font-size:10px; }
@@ -1828,11 +1836,10 @@
 
 .slide-up {
     opacity: 0;
-    transform: translateY(60px) scale(0.82);
-    transition: opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1),
-                transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+    transform: translateY(50px) scale(0.88);
+    transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
     will-change: opacity, transform;
-    transform-origin: bottom center;
 }
 .slide-up.visible {
     opacity: 1;
@@ -2028,3 +2035,114 @@
 /* ===== Performance ===== */
 .prod-card, .cat-item { contain: layout style; }
 .notification, .modal-content, .popup-container { will-change: transform, opacity; }
+
+        /* Spin center button — ลอยขึ้นจาก nav pill */
+        .nav-spin-center {
+            position: relative;
+            flex: 1.2;
+        }
+        .spin-nav-btn {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ff0000, #8b0000);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 16px rgba(255,0,0,0.5);
+            margin-top: -20px;
+            border: 3px solid #121212;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .spin-nav-btn:active {
+            transform: scale(0.92);
+            box-shadow: 0 2px 8px rgba(255,0,0,0.4);
+        }
+        .spin-nav-btn i {
+            font-size: 20px;
+            color: white;
+        }
+
+        /* ===== FOOTER ===== */
+        .site-footer {
+            background: linear-gradient(180deg, #0a0a0a 0%, #111 100%);
+            border-top: 1px solid rgba(255,255,255,0.06);
+            padding: 40px 20px 120px;
+            margin-top: 40px;
+        }
+        .footer-logo-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .footer-logo-img {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            object-fit: cover;
+        }
+        .footer-brand-name {
+            font-size: 20px;
+            font-weight: 800;
+        }
+        .footer-brand-name .ez { color: var(--main-red); }
+        .footer-desc {
+            font-size: 13px;
+            color: #777;
+            line-height: 1.7;
+            margin-bottom: 24px;
+        }
+        .footer-divider {
+            height: 1px;
+            background: rgba(255,255,255,0.06);
+            margin: 24px 0;
+        }
+        .footer-section-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: #555;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-bottom: 14px;
+        }
+        .footer-social-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 14px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            text-decoration: none;
+            color: #fff;
+            transition: background 0.2s, border-color 0.2s, transform 0.15s;
+        }
+        .footer-social-link:hover {
+            background: rgba(255,255,255,0.08);
+            border-color: rgba(255,255,255,0.15);
+            transform: translateX(4px);
+        }
+        .footer-social-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+        .footer-social-icon.fb { background: #1877f2; }
+        .footer-social-icon.wa { background: #25d366; }
+        .footer-social-icon.tt { background: #000; border: 1px solid #333; }
+        .footer-social-text { font-size: 14px; font-weight: 600; }
+        .footer-social-sub { font-size: 11px; color: #666; margin-top: 1px; }
+        .footer-copy {
+            text-align: center;
+            font-size: 11px;
+            color: #444;
+            margin-top: 28px;
+        }

@@ -864,17 +864,44 @@
         </div>
 
         <div id="tab-s" class="admin-tab hidden">
-            <div style="background:#111; padding:15px; border-radius:12px;">
-                <label style="font-size:12px; color:var(--main-red)">Banner URL:</label>
+
+            <!-- ══ ຮູບໜ້າຫຼັກ ══ -->
+            <div style="background:#111; padding:15px; border-radius:12px; margin-bottom:12px;">
+                <div style="font-size:13px; font-weight:700; color:var(--main-red); margin-bottom:10px;">
+                    <i class="fas fa-image" style="margin-right:6px;"></i>ໜ້າຫຼັກ
+                </div>
+                <label style="font-size:12px; color:#aaa;">Banner URL (ຮູບຫຼັກ):</label>
                 <input type="text" id="s-banner" class="form-control">
-                <label style="font-size:12px; color:var(--main-red)">WhatsApp Number (Ex: 85620...):</label>
-                <input type="text" id="s-wa" class="form-control">
-                <label style="font-size:12px; color:var(--main-red)">TikTok Link/User:</label>
-                <input type="text" id="s-tt" class="form-control">
-                <label style="font-size:12px; color:var(--main-red)">Facebook Link:</label>
-                <input type="text" id="s-fb" class="form-control">
-                <button class="btn btn-red" style="width:100%; margin-top:10px;" onclick="app.saveSettings()">ບັນທຶກການຕັ້ງຄ່າ</button>
             </div>
+
+            <!-- ══ ຕິດຕໍ່ / Social ══ -->
+            <div style="background:#111; padding:15px; border-radius:12px; margin-bottom:12px;">
+                <div style="font-size:13px; font-weight:700; color:var(--main-red); margin-bottom:10px;">
+                    <i class="fas fa-share-alt" style="margin-right:6px;"></i>ຊ່ອງທາງຕິດຕໍ່
+                </div>
+                <label style="font-size:12px; color:#aaa;">WhatsApp (ເລກ Ex: 85620...):</label>
+                <input type="text" id="s-wa" class="form-control">
+                <label style="font-size:12px; color:#aaa; margin-top:8px; display:block;">TikTok Link:</label>
+                <input type="text" id="s-tt" class="form-control">
+                <label style="font-size:12px; color:#aaa; margin-top:8px; display:block;">Facebook Link:</label>
+                <input type="text" id="s-fb" class="form-control">
+            </div>
+
+            <!-- ══ Footer ══ -->
+            <div style="background:#111; padding:15px; border-radius:12px; margin-bottom:12px;">
+                <div style="font-size:13px; font-weight:700; color:#f5c518; margin-bottom:10px;">
+                    <i class="fas fa-store" style="margin-right:6px;"></i>ສ່ວນທ້າຍເວັບ (Footer)
+                </div>
+                <label style="font-size:12px; color:#aaa;">ໂລໂກ້ຮ້ານ URL:</label>
+                <input type="text" id="s-footer-logo" class="form-control" placeholder="https://...logo.png">
+                <label style="font-size:12px; color:#aaa; margin-top:8px; display:block;">ຄຳອະທິບາຍຮ້ານ:</label>
+                <textarea id="s-footer-desc" class="form-control" rows="3" placeholder="ຮ້ານເກມມີ່ງທີ່ດີທີ່ສຸດ..."></textarea>
+                <p style="font-size:11px; color:#555; margin-top:6px;">* Social ດຶງຈາກ "ຊ່ອງທາງຕິດຕໍ່" ຂ້າງເທິງອັດຕະໂນມັດ</p>
+            </div>
+
+            <button class="btn btn-red" style="width:100%;" onclick="app.saveSettings()">
+                <i class="fas fa-save" style="margin-right:6px;"></i>ບັນທຶກການຕັ້ງຄ່າທັງໝົດ
+            </button>
         </div>
     </main>
 
@@ -1162,8 +1189,21 @@
         </div>
     </div>
 
-    <footer style="margin-top:50px; padding:30px 0; text-align:center; border-top:1px solid var(--border)">
-        <p style="font-size:11px; color:var(--text-dim)">© 2026 Eazy SHOP. Developed for Professional Gaming Store.</p>
+    <footer class="site-footer" id="site-footer">
+        <!-- Logo + Brand -->
+        <div class="footer-logo-row">
+            <img id="footer-logo-img" src="" class="footer-logo-img" onerror="this.style.display='none'" style="display:none;">
+            <div class="footer-brand-name"><span class="ez">Eazy</span>SHOP</div>
+        </div>
+        <p class="footer-desc" id="footer-desc">ຮ້ານຄ້າເກມມິ່ງທີ່ດີທີ່ສຸດ — ໝັ້ນໃຈໄດ້ 100%</p>
+
+        <div class="footer-divider"></div>
+
+        <!-- ຕິດຕາມເຮົາ -->
+        <div class="footer-section-title">ຕິດຕາມເຮົາ</div>
+        <div id="footer-socials"></div>
+
+        <div class="footer-copy">© 2026 Eazy SHOP. All rights reserved.</div>
     </footer>
 
 
