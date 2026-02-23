@@ -340,41 +340,62 @@ function togglePw(id, btn) {
 
                 const popup = this.popups[this.currentIndex];
                 const container = document.getElementById('popup-system');
+
+                // Build overlay (hidden until image loads)
                 const overlay = document.createElement('div');
                 overlay.className = 'popup-overlay';
+                overlay.style.opacity = '0';
+                overlay.style.transition = 'opacity 0.3s ease';
 
-                // custom image/link popup
+                let imgSrc = '';
+                let innerHtml = '';
+
                 if (popup.custom_img) {
+                    imgSrc = popup.custom_img;
                     const linkOpen = popup.custom_link 
                         ? `window.open('${popup.custom_link}', '_blank')` 
                         : 'popupSystem.close()';
-                    overlay.innerHTML = `
+                    innerHtml = `
                         <div class="popup-container">
                             <button class="popup-close" onclick="popupSystem.close()">✕</button>
-                            <img src="${popup.custom_img}" class="popup-image" onclick="${linkOpen}" alt="Popup" onerror="this.src='https://via.placeholder.com/600x600?text=No+Image'"
+                            <img src="${imgSrc}" class="popup-image" onclick="${linkOpen}" alt="Popup" onerror="this.src='https://via.placeholder.com/600x600?text=No+Image'"
                                 style="cursor:${popup.custom_link ? 'pointer' : 'default'}">
                             ${popup.custom_link ? `<div style="text-align:center; padding:8px 0 4px; font-size:12px; color:#aaa;">ກົດຮູບເພື່ອເບິ່ງຕື່ມ</div>` : ''}
                         </div>
                     `;
                 } else {
-                    // product popup
                     const product = app.db.products.find(p => p.id === popup.product_id);
                     if (!product) {
                         this.currentIndex++;
                         if (this.currentIndex < this.popups.length) { this.show(); }
                         return;
                     }
-                    overlay.innerHTML = `
+                    imgSrc = product.img;
+                    innerHtml = `
                         <div class="popup-container">
                             <button class="popup-close" onclick="popupSystem.close()">✕</button>
-                            <img src="${product.img}" class="popup-image" onclick="popupSystem.navigate(${product.id})" alt="${product.name}" onerror="this.src='https://via.placeholder.com/600x600?text=No+Image'">
+                            <img src="${imgSrc}" class="popup-image" onclick="popupSystem.navigate(${product.id})" alt="${product.name}" onerror="this.src='https://via.placeholder.com/600x600?text=No+Image'">
                         </div>
                     `;
                 }
-                
+
+                overlay.innerHTML = innerHtml;
                 container.innerHTML = '';
                 container.appendChild(overlay);
                 document.body.style.overflow = 'hidden';
+
+                // Preload image, then fade in popup
+                const _showOverlay = () => { requestAnimationFrame(() => { overlay.style.opacity = '1'; }); };
+                if (imgSrc) {
+                    const preload = new Image();
+                    preload.onload = _showOverlay;
+                    preload.onerror = _showOverlay; // show anyway on error
+                    preload.src = imgSrc;
+                    // fallback after 4s even if image stalls
+                    setTimeout(_showOverlay, 4000);
+                } else {
+                    _showOverlay();
+                }
             },
 
             close: function() {
@@ -599,7 +620,7 @@ function togglePw(id, btn) {
                 const fbWidget = document.getElementById('footer-fb-widget');
                 const fbPageUrl = s.fb_page_url || (c.fb || '');
                 const fbPageName = s.fb_page_name || 'Eazy SHOP';
-                const fbLogoUrl = s.footer_logo || 'https://img5.pic.in.th/file/secure-sv1/451040865_1553605488920298_8130537799367782724_n4d648c430d775aef.png';
+                const fbLogoUrl = s.footer_logo || 'https://img5.pic.in.th/file/secure-sv1/451040865_1553605488920298_8130537799367782724_nddb61aa519cba742.png';
                 if(fbWidget && fbPageUrl) {
                     fbWidget.style.display = 'block';
                     const nameEl = document.getElementById('fb-widget-name');
@@ -3061,6 +3082,14 @@ function togglePw(id, btn) {
 
             // วาดวงล้อ — HiDPI + ข้อความชัด อ่านออกจากกึ่งกลาง
             draw: function() {
+                // รอ font โหลดก่อน draw เพื่อป้องกันข้อความหาย
+                if (document.fonts && document.fonts.status !== 'loaded') {
+                    document.fonts.ready.then(() => this._doDraw());
+                    return;
+                }
+                this._doDraw();
+            },
+            _doDraw: function() {
                 const canvas = document.getElementById('spin-canvas');
                 if(!canvas) return;
 

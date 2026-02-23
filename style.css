@@ -1095,7 +1095,8 @@
             align-items: center; 
             justify-content: center; 
             padding: 20px;
-            animation: fadeIn 0.3s ease;
+            /* opacity controlled by JS for preload — no animation here */
+            transition: opacity 0.35s ease;
         }
         
         .popup-container { 
