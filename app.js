@@ -7,33 +7,37 @@ function togglePw(id, btn) {
 }
 
 // ===== slideAnimate =====
-    // ===== SLIDE ANIMATE — ต้องกำหนดก่อน app ทุกอย่าง =====
     function slideAnimate(selector) {
         const items = typeof selector === 'string'
             ? document.querySelectorAll(selector)
             : selector;
         if(!items || !items.length) return;
-        // แต่ละ item มี delay ของตัวเอง — ทีละอัน 120ms
+
         let globalIdx = 0;
         const obs = new IntersectionObserver((entries, o) => {
             entries.forEach(entry => {
                 if(entry.isIntersecting) {
-                    const delay = globalIdx * 120;
+                    const delay = globalIdx * 80;
                     globalIdx++;
                     setTimeout(() => entry.target.classList.add('visible'), delay);
                     o.unobserve(entry.target);
                 }
             });
-        }, { threshold: 0.08, rootMargin: '0px 0px -30px 0px' });
-        items.forEach(el => { el.classList.remove('visible'); obs.observe(el); });
-        // Fallback 2.5s
+        }, { threshold: 0.05, rootMargin: '0px 0px -20px 0px' });
+
+        items.forEach(el => {
+            el.classList.remove('visible');
+            obs.observe(el);
+        });
+
+        // Fallback 2s — make sure all visible even if intersection fails
         setTimeout(() => {
             items.forEach((el, i) => {
                 if (!el.classList.contains('visible')) {
-                    setTimeout(() => el.classList.add('visible'), i * 120);
+                    setTimeout(() => el.classList.add('visible'), i * 80);
                 }
             });
-        }, 2500);
+        }, 2000);
     }
 
 // ===== Main App =====
@@ -322,31 +326,6 @@ function togglePw(id, btn) {
 
         // Snow removed
 
-        // ===== HERO SLIDESHOW =====
-        const heroSlider = {
-            _timer: null,
-            _current: 0,
-            _total: 0,
-            start: function(total) {
-                this._total = total;
-                this._current = 0;
-                clearInterval(this._timer);
-                if(total <= 1) return;
-                this._timer = setInterval(() => {
-                    this._current = (this._current + 1) % this._total;
-                    this.goTo(this._current);
-                }, 4000);
-            },
-            goTo: function(idx) {
-                this._current = idx;
-                const slides = document.querySelectorAll('#hero .hero-slide');
-                const dots = document.querySelectorAll('#hero .hero-dot');
-                slides.forEach((s, i) => s.classList.toggle('active', i === idx));
-                dots.forEach((d, i) => d.classList.toggle('active', i === idx));
-            },
-            stop: function() { clearInterval(this._timer); }
-        };
-
         // ===== POPUP SYSTEM =====
         const popupSystem = {
             popups: [],
@@ -365,50 +344,80 @@ function togglePw(id, btn) {
 
                 const popup = this.popups[this.currentIndex];
                 const container = document.getElementById('popup-system');
+
                 const overlay = document.createElement('div');
                 overlay.className = 'popup-overlay';
 
-                // custom image/link popup
+                let imgSrc = '';
+                let innerHtml = '';
+
                 if (popup.custom_img) {
-                    const linkOpen = popup.custom_link 
-                        ? `window.open('${popup.custom_link}', '_blank')` 
+                    imgSrc = popup.custom_img;
+                    const linkOpen = popup.custom_link
+                        ? `window.open('${popup.custom_link}', '_blank')`
                         : 'popupSystem.close()';
-                    overlay.innerHTML = `
+                    innerHtml = `
                         <div class="popup-container">
                             <button class="popup-close" onclick="popupSystem.close()">✕</button>
-                            <img src="${popup.custom_img}" class="popup-image" onclick="${linkOpen}" alt="Popup" onerror="this.src='https://via.placeholder.com/600x600?text=No+Image'"
+                            <img src="${imgSrc}" class="popup-image" onclick="${linkOpen}" alt="Popup"
+                                onerror="this.src='https://via.placeholder.com/600x600?text=No+Image'"
                                 style="cursor:${popup.custom_link ? 'pointer' : 'default'}">
-                            ${popup.custom_link ? `<div style="text-align:center; padding:8px 0 4px; font-size:12px; color:#aaa;">ກົດຮູບເພື່ອເບິ່ງຕື່ມ</div>` : ''}
-                        </div>
-                    `;
+                            ${popup.custom_link ? `<div style="text-align:center;padding:8px 0 4px;font-size:12px;color:#aaa;">ກົດຮູບເພື່ອເບິ່ງຕື່ມ</div>` : ''}
+                        </div>`;
                 } else {
-                    // product popup
                     const product = app.db.products.find(p => p.id === popup.product_id);
                     if (!product) {
                         this.currentIndex++;
-                        if (this.currentIndex < this.popups.length) { this.show(); }
+                        if (this.currentIndex < this.popups.length) this.show();
                         return;
                     }
-                    overlay.innerHTML = `
+                    imgSrc = product.img;
+                    innerHtml = `
                         <div class="popup-container">
                             <button class="popup-close" onclick="popupSystem.close()">✕</button>
-                            <img src="${product.img}" class="popup-image" onclick="popupSystem.navigate(${product.id})" alt="${product.name}" onerror="this.src='https://via.placeholder.com/600x600?text=No+Image'">
-                        </div>
-                    `;
+                            <img src="${imgSrc}" class="popup-image" onclick="popupSystem.navigate(${product.id})" alt="${product.name}"
+                                onerror="this.src='https://via.placeholder.com/600x600?text=No+Image'">
+                        </div>`;
                 }
-                
+
+                overlay.innerHTML = innerHtml;
                 container.innerHTML = '';
                 container.appendChild(overlay);
                 document.body.style.overflow = 'hidden';
+
+                // Preload image, then animate in with slide-up bounce
+                const _animateIn = () => {
+                    requestAnimationFrame(() => {
+                        requestAnimationFrame(() => {
+                            overlay.classList.add('pop-visible');
+                        });
+                    });
+                };
+                if (imgSrc) {
+                    const pre = new Image();
+                    pre.onload = pre.onerror = _animateIn;
+                    pre.src = imgSrc;
+                    setTimeout(_animateIn, 5000); // safety fallback
+                } else {
+                    _animateIn();
+                }
             },
 
             close: function() {
-                document.getElementById('popup-system').innerHTML = '';
-                document.body.style.overflow = 'auto';
-                
+                const overlay = document.querySelector('#popup-system .popup-overlay');
+                if(overlay) {
+                    overlay.classList.remove('pop-visible');
+                    setTimeout(() => {
+                        document.getElementById('popup-system').innerHTML = '';
+                        document.body.style.overflow = 'auto';
+                    }, 320);
+                } else {
+                    document.getElementById('popup-system').innerHTML = '';
+                    document.body.style.overflow = 'auto';
+                }
                 this.currentIndex++;
                 if (this.currentIndex < this.popups.length) {
-                    setTimeout(() => this.show(), 200);
+                    setTimeout(() => this.show(), 450);
                 }
             },
 
@@ -467,11 +476,28 @@ function togglePw(id, btn) {
                 app.renderAdmin(); 
             },
             show: (id) => {
-                const active = document.querySelector('.page-view:not(.hidden)');
-                if(active && active.id !== id) router.history.push(active.id);
-                document.querySelectorAll('.page-view').forEach(v => v.classList.add('hidden'));
-                document.getElementById(id).classList.remove('hidden');
-                window.scrollTo(0,0);
+                const overlay = document.getElementById('page-transition-overlay');
+                const _doShow = () => {
+                    const active = document.querySelector('.page-view:not(.hidden)');
+                    if(active && active.id !== id) router.history.push(active.id);
+                    document.querySelectorAll('.page-view').forEach(v => v.classList.add('hidden'));
+                    const target = document.getElementById(id);
+                    if(target) target.classList.remove('hidden');
+                    window.scrollTo(0, 0);
+                    // fade back in
+                    requestAnimationFrame(() => {
+                        requestAnimationFrame(() => {
+                            if(overlay) { overlay.classList.remove('fade-in'); overlay.classList.add('fade-out'); }
+                        });
+                    });
+                };
+                if(overlay) {
+                    overlay.classList.remove('fade-out');
+                    overlay.classList.add('fade-in');
+                    setTimeout(_doShow, 200);
+                } else {
+                    _doShow();
+                }
             },
             back: () => {
                 const prev = router.history.pop() || 'view-home';
@@ -527,24 +553,11 @@ function togglePw(id, btn) {
                     const ls = document.getElementById('loading-screen');
                     if(ls && !ls.classList.contains('hide')) {
                         ls.classList.add('hide');
-                        // หลัง fade out เสร็จ ค่อยเปิด popup (ถ้ามี) — popup จะ preload รูปก่อน show เอง
+                        // หลัง fade out เสร็จ ค่อยเปิด popup (ถ้ามี)
                         setTimeout(() => {
                             ls.style.display = 'none';
                             if(this.db.popups && this.db.popups.length > 0) {
-                                // preload popup images before init
-                                const firstPopup = this.db.popups[0];
-                                const firstImgSrc = firstPopup.custom_img || (() => {
-                                    const p = this.db.products.find(x => x.id === firstPopup.product_id);
-                                    return p ? p.img : null;
-                                })();
-                                if(firstImgSrc) {
-                                    const pre = new Image();
-                                    pre.onload = pre.onerror = () => popupSystem.init(this.db.popups);
-                                    pre.src = firstImgSrc;
-                                    setTimeout(() => popupSystem.init(this.db.popups), 5000); // safety
-                                } else {
-                                    popupSystem.init(this.db.popups);
-                                }
+                                popupSystem.init(this.db.popups);
                             }
                         }, 550);
                     }
@@ -654,23 +667,7 @@ function togglePw(id, btn) {
             },
 
             renderHome: function() {
-                // ===== Banner Slideshow =====
-                const hero = document.getElementById('hero');
-                const banners = this.db.settings.banners || (this.db.settings.banner ? [this.db.settings.banner] : []);
-                if(hero) {
-                    if(banners.length === 0) {
-                        hero.innerHTML = '';
-                        hero.style.backgroundImage = '';
-                    } else if(banners.length === 1) {
-                        hero.innerHTML = `<div class="hero-slide active" style="background-image:url('${banners[0]}');"></div>`;
-                    } else {
-                        // Multiple — build slides + dots
-                        let slidesHtml = banners.map((b,i) => `<div class="hero-slide${i===0?' active':''}" style="background-image:url('${b}');"></div>`).join('');
-                        let dotsHtml = banners.map((_,i) => `<div class="hero-dot${i===0?' active':''}" onclick="heroSlider.goTo(${i})"></div>`).join('');
-                        hero.innerHTML = slidesHtml + `<div class="hero-dots">${dotsHtml}</div>`;
-                        heroSlider.start(banners.length);
-                    }
-                }
+                if(this.db.settings.banner) document.getElementById('hero').style.backgroundImage = `url('${this.db.settings.banner}')`;
                 
                 const hotCatIds = this.db.hot_deals.categories || [];
                 const sortedCats = [...this.db.categories].sort((a, b) =>
@@ -713,8 +710,10 @@ function togglePw(id, btn) {
                 // footer
                 this.renderFooter();
                 // ===== Trigger slide-in animations =====
-                slideAnimate('#cat-list-home .slide-up');
-                slideAnimate('#home-prods .slide-up');
+                // หมวดหมู่: slide ขึ้นจากล่าง
+                setTimeout(() => slideAnimate('#cat-list-home .slide-up'), 50);
+                // สินค้า: slide จากซ้าย
+                setTimeout(() => slideAnimate('#home-prods .slide-from-left'), 100);
             },
 
             renderProds: function(list, target) {
@@ -739,7 +738,7 @@ function togglePw(id, btn) {
                     }
                     
                     return `
-                    <div class="prod-card slide-up ${isOutOfStock ? 'out-of-stock-card' : ''}" onclick="router.detail(${p.id})">
+                    <div class="prod-card slide-from-left ${isOutOfStock ? 'out-of-stock-card' : ''}" onclick="router.detail(${p.id})">
                         <div class="prod-img-wrapper">
                             ${isHot ? '<img src="https://img2.pic.in.th/fire-icon.gif" class="hot-badge" alt="Hot Deal" style="width: 60px; height: 60px;">' : ''}
                             <img src="${p.img}" class="prod-img" onerror="this.src='https://via.placeholder.com/300?text=No+Image'" loading="lazy">
@@ -760,7 +759,7 @@ function togglePw(id, btn) {
                     if (prod) el.textContent = prod.name;
                 });
                 
-                slideAnimate('#' + target + ' .slide-up');
+                slideAnimate('#' + target + ' .slide-from-left');
             },
 
             handleSearch: function(e) {
@@ -1429,12 +1428,10 @@ function togglePw(id, btn) {
                 `}).join('');
 
                 const s = this.db.settings;
-                // banner list
-                if(!s.banners && s.banner) s.banners = [s.banner];
-                this.renderBannerAdmin();
-                document.getElementById('s-wa').value = s.contact?.wa || "";
-                document.getElementById('s-tt').value = s.contact?.tt || "";
-                document.getElementById('s-fb').value = s.contact?.fb || "";
+                document.getElementById('s-banner').value = s.banner || "";
+                document.getElementById('s-wa').value = s.contact.wa || "";
+                document.getElementById('s-tt').value = s.contact.tt || "";
+                document.getElementById('s-fb').value = s.contact.fb || "";
                 if(document.getElementById('s-footer-logo')) document.getElementById('s-footer-logo').value = s.footer_logo || "";
                 if(document.getElementById('s-footer-desc')) document.getElementById('s-footer-desc').value = s.footer_desc || "";
                 if(document.getElementById('s-fb-page')) document.getElementById('s-fb-page').value = s.fb_page_url || "";
@@ -1799,8 +1796,7 @@ function togglePw(id, btn) {
 
             saveSettings: async function() {
                 const data = {
-                    banners: this.db.settings.banners || [],
-                    banner: (this.db.settings.banners || [])[0] || '', // backward compat
+                    banner: document.getElementById('s-banner').value,
                     contact: {
                         wa: document.getElementById('s-wa').value,
                         tt: document.getElementById('s-tt').value,
@@ -1817,36 +1813,6 @@ function togglePw(id, btn) {
                 if(error) { NotificationManager.error(error.message); return; }
                 NotificationManager.success('ບັນທຶກການຕັ້ງຄ່າສຳເລັດ!');
                 await this.fetchData();
-            },
-
-            // ===== BANNER MANAGEMENT =====
-            addBanner: async function() {
-                const url = (document.getElementById('s-banner-new').value || '').trim();
-                if(!url) return;
-                if(!this.db.settings.banners) this.db.settings.banners = this.db.settings.banner ? [this.db.settings.banner] : [];
-                this.db.settings.banners.push(url);
-                document.getElementById('s-banner-new').value = '';
-                this.renderBannerAdmin();
-                await this.saveSettings();
-            },
-            removeBanner: async function(idx) {
-                if(!this.db.settings.banners) return;
-                this.db.settings.banners.splice(idx, 1);
-                this.renderBannerAdmin();
-                await this.saveSettings();
-            },
-            renderBannerAdmin: function() {
-                const el = document.getElementById('banner-list-admin');
-                if(!el) return;
-                const banners = this.db.settings.banners || (this.db.settings.banner ? [this.db.settings.banner] : []);
-                if(!banners.length) { el.innerHTML = '<p style="color:#555;font-size:12px;text-align:center;padding:8px;">ຍັງບໍ່ມີ banner</p>'; return; }
-                el.innerHTML = banners.map((b,i) => `
-                    <div style="display:flex;align-items:center;gap:8px;background:#1a1a1a;border-radius:8px;padding:8px 10px;border:1px solid #2a2a2a;">
-                        <img src="${b}" style="width:56px;height:36px;object-fit:cover;border-radius:5px;flex-shrink:0;" onerror="this.src='https://via.placeholder.com/56x36?text=?'">
-                        <div style="flex:1;font-size:11px;color:#888;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${b}</div>
-                        <i class="fas fa-trash" style="color:#ff4444;cursor:pointer;font-size:14px;flex-shrink:0;" onclick="app.removeBanner(${i})"></i>
-                    </div>
-                `).join('');
             },
 
             saveUser: async function() {
