@@ -2146,3 +2146,72 @@
             color: #444;
             margin-top: 28px;
         }
+
+        /* ===== FACEBOOK PAGE WIDGET ===== */
+        .fb-page-widget {
+            background: #fff;
+            border-radius: 14px;
+            overflow: hidden;
+            border: 1px solid #ddd;
+        }
+        .fb-page-top {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            background: #fff;
+        }
+        .fb-widget-logo {
+            width: 60px;
+            height: 60px;
+            border-radius: 10px;
+            object-fit: cover;
+            flex-shrink: 0;
+            border: 1px solid #eee;
+        }
+        .fb-widget-info { flex: 1; }
+        .fb-widget-name {
+            font-size: 15px;
+            font-weight: 700;
+            color: #1c1e21;
+            line-height: 1.2;
+        }
+        .fb-widget-sub {
+            font-size: 12px;
+            color: #65676b;
+            margin-top: 2px;
+        }
+        .fb-widget-divider {
+            height: 1px;
+            background: #e4e6ea;
+            margin: 0 16px;
+        }
+        .fb-widget-actions {
+            display: flex;
+            gap: 8px;
+            padding: 12px 16px;
+            background: #fff;
+        }
+        .fb-widget-btn {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            transition: filter 0.15s;
+        }
+        .fb-widget-btn:hover { filter: brightness(0.93); }
+        .fb-follow {
+            background: #1877f2;
+            color: #fff;
+        }
+        .fb-share {
+            background: #e4e6eb;
+            color: #050505;
+        }

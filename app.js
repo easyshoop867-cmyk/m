@@ -581,43 +581,42 @@ function togglePw(id, btn) {
                 const s = this.db.settings || {};
                 // logo
                 const logoImg = document.getElementById('footer-logo-img');
-                if(logoImg && s.footer_logo) {
-                    logoImg.src = s.footer_logo;
-                    logoImg.style.display = 'block';
+                if(logoImg) {
+                    if(s.footer_logo) { logoImg.src = s.footer_logo; logoImg.style.display = 'block'; }
+                    else logoImg.style.display = 'none';
                 }
                 // desc
                 const descEl = document.getElementById('footer-desc');
-                if(descEl && s.footer_desc) descEl.textContent = s.footer_desc;
+                if(descEl) descEl.textContent = s.footer_desc || 'ຮ້ານຄ້າເກມມິ່ງທີ່ດີທີ່ສຸດ';
                 // socials
                 const c = s.contact || {};
                 const socialsEl = document.getElementById('footer-socials');
-                if(!socialsEl) return;
-                let links = [];
-                if(c.fb) links.push(`
-                    <a class="footer-social-link" href="${c.fb}" target="_blank">
-                        <div class="footer-social-icon fb"><i class="fab fa-facebook-f"></i></div>
-                        <div>
-                            <div class="footer-social-text">Facebook</div>
-                            <div class="footer-social-sub">ຕິດຕາມໜ້າ Page</div>
-                        </div>
-                    </a>`);
-                if(c.wa) links.push(`
-                    <a class="footer-social-link" href="https://wa.me/${c.wa.replace(/\D/g,'')}" target="_blank">
-                        <div class="footer-social-icon wa"><i class="fab fa-whatsapp"></i></div>
-                        <div>
-                            <div class="footer-social-text">WhatsApp</div>
-                            <div class="footer-social-sub">ຕິດຕໍ່ຫາເຮົາ</div>
-                        </div>
-                    </a>`);
-                if(c.tt) links.push(`
-                    <a class="footer-social-link" href="${c.tt}" target="_blank">
-                        <div class="footer-social-icon tt"><i class="fab fa-tiktok"></i></div>
-                        <div>
-                            <div class="footer-social-text">TikTok</div>
-                            <div class="footer-social-sub">ຕິດຕາມວິດີໂອ</div>
-                        </div>
-                    </a>`);
-                socialsEl.innerHTML = links.join('') || '<p style="color:#555;font-size:13px;">ຍັງບໍ່ມີ Social ທີ່ຕັ້ງໄວ້</p>';
+                if(socialsEl) {
+                    let links = [];
+                    if(c.fb) links.push(`<a class="footer-social-link" href="${c.fb}" target="_blank"><div class="footer-social-icon fb"><i class="fab fa-facebook-f"></i></div><div><div class="footer-social-text">Facebook</div><div class="footer-social-sub">ຕິດຕາມໜ້າ Page</div></div></a>`);
+                    if(c.wa) links.push(`<a class="footer-social-link" href="https://wa.me/${c.wa.replace(/\D/g,'')}" target="_blank"><div class="footer-social-icon wa"><i class="fab fa-whatsapp"></i></div><div><div class="footer-social-text">WhatsApp</div><div class="footer-social-sub">ຕິດຕໍ່ຫາເຮົາ</div></div></a>`);
+                    if(c.tt) links.push(`<a class="footer-social-link" href="${c.tt}" target="_blank"><div class="footer-social-icon tt"><i class="fab fa-tiktok"></i></div><div><div class="footer-social-text">TikTok</div><div class="footer-social-sub">ຕິດຕາມວິດີໂອ</div></div></a>`);
+                    socialsEl.innerHTML = links.join('') || '';
+                }
+                // Facebook Page Widget
+                const fbWidget = document.getElementById('footer-fb-widget');
+                const fbPageUrl = s.fb_page_url || (c.fb || '');
+                const fbPageName = s.fb_page_name || 'Eazy SHOP';
+                const fbLogoUrl = s.footer_logo || 'https://img5.pic.in.th/file/secure-sv1/451040865_1553605488920298_8130537799367782724_n4d648c430d775aef.png';
+                if(fbWidget && fbPageUrl) {
+                    fbWidget.style.display = 'block';
+                    const nameEl = document.getElementById('fb-widget-name');
+                    if(nameEl) nameEl.textContent = fbPageName;
+                    const logoEl = document.getElementById('fb-widget-logo');
+                    if(logoEl) logoEl.src = fbLogoUrl;
+                    const followBtn = document.getElementById('fb-widget-follow');
+                    if(followBtn) followBtn.href = fbPageUrl;
+                    const shareUrl = 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(fbPageUrl);
+                    const shareBtn = document.getElementById('fb-widget-share');
+                    if(shareBtn) shareBtn.href = shareUrl;
+                } else if(fbWidget) {
+                    fbWidget.style.display = 'none';
+                }
             },
 
             renderHome: function() {
@@ -1386,6 +1385,8 @@ function togglePw(id, btn) {
                 document.getElementById('s-fb').value = s.contact.fb || "";
                 if(document.getElementById('s-footer-logo')) document.getElementById('s-footer-logo').value = s.footer_logo || "";
                 if(document.getElementById('s-footer-desc')) document.getElementById('s-footer-desc').value = s.footer_desc || "";
+                if(document.getElementById('s-fb-page')) document.getElementById('s-fb-page').value = s.fb_page_url || "";
+                if(document.getElementById('s-fb-page-name')) document.getElementById('s-fb-page-name').value = s.fb_page_name || "";
                 
                 // Load Hot Deals
                 this.loadHotItems();
@@ -1753,7 +1754,9 @@ function togglePw(id, btn) {
                         fb: document.getElementById('s-fb').value
                     },
                     footer_logo: (document.getElementById('s-footer-logo') || {}).value || (this.db.settings.footer_logo || ''),
-                    footer_desc: (document.getElementById('s-footer-desc') || {}).value || (this.db.settings.footer_desc || '')
+                    footer_desc: (document.getElementById('s-footer-desc') || {}).value || (this.db.settings.footer_desc || ''),
+                    fb_page_url: (document.getElementById('s-fb-page') || {}).value || (this.db.settings.fb_page_url || ''),
+                    fb_page_name: (document.getElementById('s-fb-page-name') || {}).value || (this.db.settings.fb_page_name || '')
                 };
                 this.loading(true);
                 const { error } = await _supabase.from('settings').update({ data }).eq('id', 1);
