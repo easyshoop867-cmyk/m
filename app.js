@@ -400,15 +400,35 @@ function togglePw(id, btn) {
                 container.innerHTML = '';
                 container.appendChild(overlay);
                 document.body.style.overflow = 'hidden';
+
+                // Trigger smooth animation after DOM paint
+                requestAnimationFrame(() => {
+                    overlay.classList.add('popup-visible');
+                    const pc = overlay.querySelector('.popup-container');
+                    if(pc) requestAnimationFrame(() => pc.classList.add('popup-in'));
+                });
             },
 
             close: function() {
-                document.getElementById('popup-system').innerHTML = '';
-                document.body.style.overflow = 'auto';
-                
-                this.currentIndex++;
-                if (this.currentIndex < this.popups.length) {
-                    setTimeout(() => this.show(), 200);
+                const container = document.getElementById('popup-system');
+                const overlay = container.querySelector('.popup-overlay');
+                const pc = overlay ? overlay.querySelector('.popup-container') : null;
+
+                const doClose = () => {
+                    container.innerHTML = '';
+                    document.body.style.overflow = 'auto';
+                    this.currentIndex++;
+                    if (this.currentIndex < this.popups.length) {
+                        setTimeout(() => this.show(), 200);
+                    }
+                };
+
+                if(pc && overlay) {
+                    pc.classList.add('popup-out');
+                    overlay.style.background = 'rgba(0,0,0,0)';
+                    setTimeout(doClose, 260);
+                } else {
+                    doClose();
                 }
             },
 
@@ -469,9 +489,21 @@ function togglePw(id, btn) {
             show: (id) => {
                 const active = document.querySelector('.page-view:not(.hidden)');
                 if(active && active.id !== id) router.history.push(active.id);
-                document.querySelectorAll('.page-view').forEach(v => v.classList.add('hidden'));
-                document.getElementById(id).classList.remove('hidden');
-                window.scrollTo(0,0);
+                
+                const overlay = document.getElementById('page-transition-overlay');
+                if(overlay) {
+                    overlay.classList.add('flash');
+                    setTimeout(() => {
+                        document.querySelectorAll('.page-view').forEach(v => v.classList.add('hidden'));
+                        document.getElementById(id).classList.remove('hidden');
+                        window.scrollTo(0,0);
+                        setTimeout(() => overlay.classList.remove('flash'), 80);
+                    }, 200);
+                } else {
+                    document.querySelectorAll('.page-view').forEach(v => v.classList.add('hidden'));
+                    document.getElementById(id).classList.remove('hidden');
+                    window.scrollTo(0,0);
+                }
             },
             back: () => {
                 const prev = router.history.pop() || 'view-home';
