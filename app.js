@@ -6,34 +6,51 @@ function togglePw(id, btn) {
     else { input.type = 'password'; icon.className = 'fas fa-eye'; }
 }
 
-// ===== slideAnimate =====
-    // ===== SLIDE ANIMATE — ต้องกำหนดก่อน app ทุกอย่าง =====
+// ===== slideAnimate — Scroll Reveal with Stagger =====
     function slideAnimate(selector) {
         const items = typeof selector === 'string'
             ? document.querySelectorAll(selector)
             : selector;
-        if(!items || !items.length) return;
-        // แต่ละ item มี delay ของตัวเอง — ทีละอัน 120ms
-        let globalIdx = 0;
-        const obs = new IntersectionObserver((entries, o) => {
-            entries.forEach(entry => {
-                if(entry.isIntersecting) {
-                    const delay = globalIdx * 120;
-                    globalIdx++;
-                    setTimeout(() => entry.target.classList.add('visible'), delay);
-                    o.unobserve(entry.target);
-                }
+        if (!items || !items.length) return;
+
+        // Reset ทุก element ก่อน (กรณี re-render)
+        items.forEach(el => el.classList.remove('visible'));
+
+        // กำหนด index ให้แต่ละ item เพื่อคำนวณ stagger
+        items.forEach((el, i) => el.setAttribute('data-reveal-index', i));
+
+        // Intersection Observer — ตรวจจับตอน scroll เข้า viewport
+        const obs = new IntersectionObserver((entries, observer) => {
+            // เรียงตาม index เพื่อให้ wave effect เป็นลำดับ
+            const visible = entries
+                .filter(e => e.isIntersecting)
+                .sort((a, b) =>
+                    parseInt(a.target.getAttribute('data-reveal-index')) -
+                    parseInt(b.target.getAttribute('data-reveal-index'))
+                );
+
+            visible.forEach((entry, localIdx) => {
+                const stagger = localIdx * 80; // 80ms ต่อการ์ด — คลื่นลื่นไหล
+                setTimeout(() => {
+                    entry.target.classList.add('visible');
+                }, stagger);
+                observer.unobserve(entry.target);
             });
-        }, { threshold: 0.08, rootMargin: '0px 0px -30px 0px' });
-        items.forEach(el => { el.classList.remove('visible'); obs.observe(el); });
-        // Fallback 2.5s
+        }, {
+            threshold: 0.1,
+            rootMargin: '0px 0px -40px 0px' // trigger ก่อนถึงขอบจอเล็กน้อย
+        });
+
+        items.forEach(el => observer.observe(el));
+
+        // Fallback: ถ้า 3 วินาทีแล้วยังไม่โผล่ (เช่น ไม่ได้ scroll) ให้แสดงหมด
         setTimeout(() => {
             items.forEach((el, i) => {
                 if (!el.classList.contains('visible')) {
-                    setTimeout(() => el.classList.add('visible'), i * 120);
+                    setTimeout(() => el.classList.add('visible'), i * 80);
                 }
             });
-        }, 2500);
+        }, 3000);
     }
 
 // ===== Main App =====
