@@ -579,41 +579,41 @@ function togglePw(id, btn) {
                 this.loading(false);
                 localStorage.removeItem('adminLogin');
 
-                // รอรูป category แรกโหลดเสร็จก่อน แล้วค่อยปิด loading
+                // ปิด loading screen — รอรูปแรกโหลด หรือ max 1.5s
                 const _hideLoading = () => {
                     const ls = document.getElementById('loading-screen');
-                    if(ls && !ls.classList.contains('hide')) {
-                        ls.classList.add('hide');
-                        document.body.style.overflow = ''; // unlock scroll
-                        // หลัง fade out เสร็จ ค่อยเปิด popup (ถ้ามี) — popup จะ preload รูปก่อน show เอง
-                        setTimeout(() => {
-                            ls.style.display = 'none';
-                            if(this.db.popups && this.db.popups.length > 0) {
-                                // preload popup images before init
-                                const firstPopup = this.db.popups[0];
-                                const firstImgSrc = firstPopup.custom_img || (() => {
-                                    const p = this.db.products.find(x => x.id === firstPopup.product_id);
-                                    return p ? p.img : null;
-                                })();
-                                if(firstImgSrc) {
-                                    const pre = new Image();
-                                    pre.onload = pre.onerror = () => popupSystem.init(this.db.popups);
-                                    pre.src = firstImgSrc;
-                                    setTimeout(() => popupSystem.init(this.db.popups), 5000); // safety
-                                } else {
-                                    popupSystem.init(this.db.popups);
-                                }
+                    if (!ls || ls.classList.contains('hide')) return;
+                    ls.classList.add('hide');
+                    document.body.style.overflow = '';
+                    setTimeout(() => {
+                        ls.style.display = 'none';
+                        if (this.db.popups && this.db.popups.length > 0) {
+                            const firstPopup = this.db.popups[0];
+                            const firstImgSrc = firstPopup.custom_img || (() => {
+                                const p = this.db.products.find(x => x.id === firstPopup.product_id);
+                                return p ? p.img : null;
+                            })();
+                            if (firstImgSrc) {
+                                const pre = new Image();
+                                pre.onload = pre.onerror = () => popupSystem.init(this.db.popups);
+                                pre.src = firstImgSrc;
+                                setTimeout(() => popupSystem.init(this.db.popups), 5000);
+                            } else {
+                                popupSystem.init(this.db.popups);
                             }
-                        }, 550);
-                    }
+                        }
+                    }, 500);
                 };
+
+                // พยายามรอรูปแรก แต่ถ้าไม่มีหรือโหลดเสร็จแล้วให้ปิดทันที
                 const _firstImg = document.querySelector('#cat-list-home img:not(.hot-badge)');
-                if(_firstImg && !_firstImg.complete) {
-                    _firstImg.addEventListener('load', _hideLoading, { once: true });
-                    _firstImg.addEventListener('error', _hideLoading, { once: true });
-                    setTimeout(_hideLoading, 3500); // fallback
+                const _maxWait = setTimeout(_hideLoading, 1500); // ไม่เกิน 1.5 วินาทีต้องปิด
+                if (_firstImg && !_firstImg.complete) {
+                    _firstImg.addEventListener('load', () => { clearTimeout(_maxWait); _hideLoading(); }, { once: true });
+                    _firstImg.addEventListener('error', () => { clearTimeout(_maxWait); _hideLoading(); }, { once: true });
                 } else {
-                    requestAnimationFrame(() => requestAnimationFrame(_hideLoading));
+                    clearTimeout(_maxWait);
+                    _hideLoading();
                 }
 
                 // PHASE 2: โหลดส่วนที่เหลือ background ไม่บล็อก UI
