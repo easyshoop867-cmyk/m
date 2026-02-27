@@ -53,6 +53,7 @@
             z-index: 99999;
             opacity: 1;
             visibility: visible;
+            pointer-events: all;   /* บล็อก interaction ตลอดเวลาที่แสดงอยู่ */
             transition: opacity 0.5s ease, visibility 0.5s ease;
         }
         #loading-screen.hide {
@@ -1129,7 +1130,7 @@
             position: fixed;
             inset: 0;
             background: #050505;
-            z-index: 999998;
+            z-index: 9990;   /* ต่ำกว่า loading-screen (99999) มาก — ไม่บังตอนโหลด */
             pointer-events: none;
             opacity: 0;
         }

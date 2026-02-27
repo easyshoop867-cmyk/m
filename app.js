@@ -506,7 +506,9 @@ function togglePw(id, btn) {
                 if (active) router.history.push(active.id);
 
                 const overlay = document.getElementById('page-transition-overlay');
-                if (!overlay) {
+
+                // ถ้าไม่มีหน้า active (load ครั้งแรก) หรือไม่มี overlay — เปลี่ยนหน้าตรงๆ ไม่ fade
+                if (!active || !overlay) {
                     document.querySelectorAll('.page-view').forEach(v => v.classList.add('hidden'));
                     document.getElementById(id).classList.remove('hidden');
                     window.scrollTo(0, 0);
@@ -520,11 +522,9 @@ function togglePw(id, btn) {
 
                 setTimeout(() => {
                     document.querySelectorAll('.page-view').forEach(v => v.classList.add('hidden'));
-                    const next = document.getElementById(id);
-                    next.classList.remove('hidden');
+                    document.getElementById(id).classList.remove('hidden');
                     window.scrollTo(0, 0);
 
-                    // สว่างขึ้น
                     overlay.style.transition = 'opacity 0.28s ease';
                     overlay.style.opacity = '0';
                     overlay.style.pointerEvents = 'none';
@@ -584,6 +584,7 @@ function togglePw(id, btn) {
                     const ls = document.getElementById('loading-screen');
                     if(ls && !ls.classList.contains('hide')) {
                         ls.classList.add('hide');
+                        document.body.style.overflow = ''; // unlock scroll
                         // หลัง fade out เสร็จ ค่อยเปิด popup (ถ้ามี) — popup จะ preload รูปก่อน show เอง
                         setTimeout(() => {
                             ls.style.display = 'none';
@@ -4026,6 +4027,9 @@ function togglePw(id, btn) {
 // ===== Legacy Scroll =====
 // Legacy support for old scroll-animate items on initial load
 document.addEventListener("DOMContentLoaded", function() {
+    // Lock scroll ทันทีตอนโหลด — ป้องกัน scroll เห็นหน้าหลังก่อนโหลดเสร็จ
+    document.body.style.overflow = 'hidden';
+
     const legacyItems = document.querySelectorAll('.scroll-animate');
     const legacyObserver = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
