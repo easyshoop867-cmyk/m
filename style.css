@@ -1132,10 +1132,6 @@
             z-index: 999998;
             pointer-events: none;
             opacity: 0;
-            transition: opacity 0.35s ease;
-        }
-        #page-transition-overlay.flash {
-            opacity: 1;
         }
 
         /* --- POPUP SYSTEM --- */
@@ -1903,19 +1899,14 @@
 .cat-item { animation: none !important; }
 .prod-card { animation: none !important; }
 
-/* --- Base state: ซ่อนก่อน scroll มาถึง --- */
-.cat-item.slide-up,
-.prod-card.slide-up {
-    will-change: opacity, transform;
-}
-
 /* --- Cat-item: Fade-in + Slide UP จากล่าง --- */
 .cat-item.slide-up {
     opacity: 0;
-    transform: translateY(55px);
+    transform: translateY(60px);
     transition:
-        opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1),
-        transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+        opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+        transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: opacity, transform;
 }
 .cat-item.slide-up.visible {
     opacity: 1;
@@ -1926,13 +1917,14 @@
     transition: transform 0.3s ease !important;
 }
 
-/* --- Prod-card: Fade-in + Slide UP จากล่าง (เหมือนกัน ตามที่ขอ) --- */
+/* --- Prod-card: Fade-in + Slide UP จากล่าง --- */
 .prod-card.slide-up {
     opacity: 0;
-    transform: translateY(40px);
+    transform: translateY(50px);
     transition:
-        opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1),
-        transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+        opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+        transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: opacity, transform;
 }
 .prod-card.slide-up.visible {
     opacity: 1;
@@ -1950,8 +1942,8 @@
     opacity: 0;
     transform: translateY(50px);
     transition:
-        opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1),
-        transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+        opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+        transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
     will-change: opacity, transform;
 }
 .slide-up.visible {

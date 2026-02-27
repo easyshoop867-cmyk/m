@@ -14,40 +14,37 @@ function togglePw(id, btn) {
         if (!items || !items.length) return;
 
         // Reset ทุก element ก่อน (กรณี re-render)
-        items.forEach(el => el.classList.remove('visible'));
+        items.forEach((el, i) => {
+            el.classList.remove('visible');
+            el.setAttribute('data-reveal-index', i);
+        });
 
-        // กำหนด index ให้แต่ละ item เพื่อคำนวณ stagger
-        items.forEach((el, i) => el.setAttribute('data-reveal-index', i));
-
-        // Intersection Observer — ตรวจจับตอน scroll เข้า viewport
         const obs = new IntersectionObserver((entries, observer) => {
-            // เรียงตาม index เพื่อให้ wave effect เป็นลำดับ
-            const visible = entries
+            entries
                 .filter(e => e.isIntersecting)
                 .sort((a, b) =>
                     parseInt(a.target.getAttribute('data-reveal-index')) -
                     parseInt(b.target.getAttribute('data-reveal-index'))
-                );
-
-            visible.forEach((entry, localIdx) => {
-                const stagger = localIdx * 80; // 80ms ต่อการ์ด — คลื่นลื่นไหล
-                setTimeout(() => {
-                    entry.target.classList.add('visible');
-                }, stagger);
-                observer.unobserve(entry.target);
-            });
+                )
+                .forEach((entry, localIdx) => {
+                    // stagger 100ms ต่อการ์ด — ชัดเจนแต่ไม่ช้าเกิน
+                    setTimeout(() => {
+                        entry.target.classList.add('visible');
+                    }, localIdx * 100);
+                    observer.unobserve(entry.target);
+                });
         }, {
-            threshold: 0.1,
-            rootMargin: '0px 0px -40px 0px' // trigger ก่อนถึงขอบจอเล็กน้อย
+            threshold: 0.05,               // trigger ง่าย แค่เห็นนิดเดียวก็ animate
+            rootMargin: '0px 0px -20px 0px'
         });
 
         items.forEach(el => observer.observe(el));
 
-        // Fallback: ถ้า 3 วินาทีแล้วยังไม่โผล่ (เช่น ไม่ได้ scroll) ให้แสดงหมด
+        // Fallback 3s
         setTimeout(() => {
             items.forEach((el, i) => {
                 if (!el.classList.contains('visible')) {
-                    setTimeout(() => el.classList.add('visible'), i * 80);
+                    setTimeout(() => el.classList.add('visible'), i * 100);
                 }
             });
         }, 3000);
@@ -505,22 +502,33 @@ function togglePw(id, btn) {
             },
             show: (id) => {
                 const active = document.querySelector('.page-view:not(.hidden)');
-                if(active && active.id !== id) router.history.push(active.id);
-                
+                if (active && active.id === id) return; // ไม่ทำถ้าหน้าเดิม
+                if (active) router.history.push(active.id);
+
                 const overlay = document.getElementById('page-transition-overlay');
-                if(overlay) {
-                    overlay.classList.add('flash');
-                    setTimeout(() => {
-                        document.querySelectorAll('.page-view').forEach(v => v.classList.add('hidden'));
-                        document.getElementById(id).classList.remove('hidden');
-                        window.scrollTo(0,0);
-                        setTimeout(() => overlay.classList.remove('flash'), 80);
-                    }, 200);
-                } else {
+                if (!overlay) {
                     document.querySelectorAll('.page-view').forEach(v => v.classList.add('hidden'));
                     document.getElementById(id).classList.remove('hidden');
-                    window.scrollTo(0,0);
+                    window.scrollTo(0, 0);
+                    return;
                 }
+
+                // Flash มืดครั้งเดียว → เปลี่ยนหน้า → สว่างขึ้น
+                overlay.style.transition = 'opacity 0.18s ease';
+                overlay.style.opacity = '1';
+                overlay.style.pointerEvents = 'all';
+
+                setTimeout(() => {
+                    document.querySelectorAll('.page-view').forEach(v => v.classList.add('hidden'));
+                    const next = document.getElementById(id);
+                    next.classList.remove('hidden');
+                    window.scrollTo(0, 0);
+
+                    // สว่างขึ้น
+                    overlay.style.transition = 'opacity 0.28s ease';
+                    overlay.style.opacity = '0';
+                    overlay.style.pointerEvents = 'none';
+                }, 180);
             },
             back: () => {
                 const prev = router.history.pop() || 'view-home';
